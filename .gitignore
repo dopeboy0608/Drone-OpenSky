@@ -1,0 +1,19 @@
+# Visual Studio Code
+.vscode/
+
+# IntelliJ
+.idea/
+
+# macOS
+.DS_Store
+
+# Environment
+.env
+.env.local
+
+# Node
+node_modules/
+
+# Logs
+*.log
+/.idea/
