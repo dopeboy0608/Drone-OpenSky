@@ -57,7 +57,7 @@ docs/draft/                 # 장기 비전 초안 (참고용, 현재 범위 아
 - 스타일: Tailwind CSS(레이아웃/spacing) + Ant Design(컴포넌트, theme token으로 커스터마이즈). Tailwind로 antd 내부 스타일을 직접 오버라이드하지 않는다.
 - 상태 관리: zustand
 - 라우팅: TanStack Router
-- 데이터 조회: 기본은 TanStack Query 훅, 캐싱/재시도가 필요 없는 단발성 조회는 axios 직접 사용 가능. axios 인스턴스는 `api/` 아래에서만 생성한다.
+- 데이터 조회: 기본은 axios 직접 사용. 호출 로직은 그대로 컴포넌트/훅에 두지 않고 API 호출 유틸 함수로 만들어 사용한다. 캐싱, 재시도, 백그라운드 리페치 등 TanStack Query의 기능이 필요하다고 판단되면 임의로 도입하지 말고 먼저 사용자에게 제안하고 동의를 받은 뒤 적용한다. axios 인스턴스는 `api/` 아래에서만 생성한다.
 
 ## 금지 사항
 

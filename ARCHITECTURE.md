@@ -12,7 +12,7 @@ src/
     Map/            # Kakao Map 초기화 및 컨테이너
     PolygonLayer/   # GeoJSON → Kakao Map Polygon 렌더링
   routes/           # TanStack Router 라우트 정의 (현재는 단일 라우트)
-  api/              # axios 클라이언트(client.ts), TanStack Query 훅
+  api/              # axios 클라이언트(client.ts), API 호출 유틸 함수
   store/            # zustand 스토어
 ```
 
@@ -30,8 +30,8 @@ VWorld WFS API (EPSG:4326, GeoJSON)
 
 ## API 조회 규칙 (axios / TanStack Query)
 
-- 서버 데이터 조회는 기본적으로 TanStack Query 훅으로 감싼다 (캐싱, 재시도, 로딩 상태 관리 필요).
-- 캐싱/재시도가 필요 없는 단발성 조회는 axios를 직접 사용해도 된다.
+- 서버 데이터 조회는 기본적으로 axios를 직접 사용한다. 호출 로직은 컴포넌트/훅에 인라인으로 두지 않고 API 호출 유틸 함수로 만들어 사용한다.
+- 캐싱, 재시도, 백그라운드 리페치 등 TanStack Query의 기능이 필요하다고 판단되면 임의로 도입하지 않고 먼저 사용자에게 제안해 동의를 받은 뒤 적용한다.
 - 두 경우 모두 axios 인스턴스(공통 클라이언트, 인터셉터)는 `api/` 아래에서만 생성한다.
 - VWorld(지역/구역 조회) API 호출은 `src/api/vworldClient.ts`의 `vworldClient`를 사용한다. 요청 인터셉터가 `VITE_VWORLD_API_KEY`를 자동으로 붙이므로 호출부에서 키를 직접 넘기지 않는다.
 - 향후 게시글 등록 등 별도 DB/API 서버가 추가되면 `src/api/` 아래에 그 서버 전용 axios 인스턴스 파일(예: `communityClient.ts`)을 따로 만든다. VWorld 클라이언트와 혼용하지 않는다.
