@@ -5,7 +5,7 @@
 - rsbuild + React + TypeScript 스캐폴딩
 - 스택 설치: antd, zustand, TanStack Router/Query, axios, Tailwind CSS
 - react-kakao-maps-sdk 설치
-- axios 인스턴스 + VWorld API 키 자동 주입 인터셉터 (`src/api/client.ts`)
+- axios 인스턴스 + VWorld API 키 자동 주입 인터셉터 (`src/api/vworldClient.ts`)
 - ESLint + Prettier 설정, husky + lint-staged pre-commit 훅
 - `.env.example` 환경변수 템플릿
 - TypeScript strict 모드 활성화
@@ -17,6 +17,7 @@
 - 공공 API → GeoJSON 변환 → 폴리곤 표시
 - 데이터 소스 1개로 시작 (검증 후 확정)
 - 반응형(모바일 웹) 대응 포함 — 화면 작업과 함께 진행
+- TODO(2026-09-12): VWorld WFS API 호출부 작업 (개발키 발급·동작 확인 완료, `src/api/` 훅 구현 예정)
 
 ## 2단계 — 필터 기능 추가
 
