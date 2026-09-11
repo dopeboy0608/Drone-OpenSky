@@ -26,14 +26,28 @@
 
 ```
 src/
-  components/
-    Map/            # Kakao Map 초기화 및 컨테이너
-    PolygonLayer/   # GeoJSON → Kakao Map Polygon 렌더링
-  routes/           # TanStack Router 라우트 정의
-  api/              # axios 클라이언트, TanStack Query 훅
-  store/            # zustand 스토어
-docs/draft/         # 장기 비전 초안 (참고용, 현재 범위 아님)
+  pages/                    # 라우트가 렌더링하는 화면 컴포넌트
+    MapPage.tsx
+  features/
+    map/                    # 도메인: Kakao Map 초기화/컨테이너
+      components/
+      hooks/
+      queries/              # 도메인 전용 TanStack Query 훅 (필요 시)
+      store/                # 도메인 전용 zustand (필요 시)
+      types.ts              # 도메인 전용 타입 (필요 시)
+      constants.ts          # 도메인 전용 상수 (필요 시)
+    airspace/                # 도메인: 공공 API 폴리곤(GeoJSON → Kakao Map Polygon) 조회/렌더링 (범위 확장 시)
+  components/               # 여러 feature가 공유하는 순수 공용 UI 컴포넌트
+  routes/                   # TanStack Router 라우트 정의(경로/loader). pages/를 얇게 렌더링만 한다
+  api/                      # axios 인스턴스 등 공통 API 클라이언트 (도메인 전용 조회 훅은 features/*/queries)
+  store/                    # 전역 zustand 스토어 (도메인 전용 상태는 features/*/store)
+  types/                    # 여러 도메인이 공유하는 타입
+  constants/                # 여러 도메인이 공유하는 상수
+  assets/                   # svg/이미지 등 정적 에셋
+docs/draft/                 # 장기 비전 초안 (참고용, 현재 범위 아님)
 ```
+
+코드 정렬(import 순서, 컴포넌트 내부 훅/상태/이펙트 구조) 규칙은 `/code-organizer` 스킬(`.claude/skills/code-organizer/SKILL.md`) 참고.
 
 ## 기술 스택
 

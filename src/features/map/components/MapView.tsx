@@ -1,31 +1,6 @@
-import { useEffect, useState } from 'react';
 import { Map, useKakaoLoader } from 'react-kakao-maps-sdk';
 
-const DEFAULT_CENTER = { lat: 37.5665, lng: 126.978 };
-
-const useCurrentCenter = () => {
-  const [center, setCenter] = useState(DEFAULT_CENTER);
-
-  useEffect(() => {
-    if (!navigator.geolocation) {
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setCenter({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        });
-      },
-      () => {
-        setCenter(DEFAULT_CENTER);
-      },
-    );
-  }, []);
-
-  return center;
-};
+import { useCurrentCenter } from '@/features/map/hooks/useCurrentCenter';
 
 export const MapView = () => {
   const [loading, error] = useKakaoLoader({

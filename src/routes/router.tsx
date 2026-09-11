@@ -5,7 +5,7 @@ import {
   createRoute,
   createRouter,
 } from '@tanstack/react-router';
-import { MapView } from '../components/Map/MapView';
+import { MapPage } from '@/pages/MapPage';
 
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
@@ -20,11 +20,7 @@ const indexRoute = createRoute({
 const mapRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/map',
-  component: () => (
-    <div className="h-screen w-screen">
-      <MapView />
-    </div>
-  ),
+  component: () => <MapPage />,
 });
 
 const routeTree = rootRoute.addChildren([indexRoute, mapRoute]);
