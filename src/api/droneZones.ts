@@ -15,7 +15,7 @@ export interface BoundingBox {
   maxLat: number;
 }
 
-interface GeoJsonFeatureCollection {
+export interface GeoJsonFeatureCollection {
   type: 'FeatureCollection';
   features: Array<{
     type: 'Feature';
