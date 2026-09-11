@@ -9,6 +9,13 @@
 - `pnpm dev` — 개발 서버 실행
 - `pnpm build` — 프로덕션 빌드
 - `pnpm preview` — 프로덕션 빌드 로컬 미리보기
+- `pnpm lint` — ESLint 검사
+- `pnpm lint:fix` — ESLint 자동 수정
+- `pnpm format` — Prettier로 코드 포맷
+
+## 코드 작성 후 규칙
+
+코드를 작성하거나 수정한 뒤에는 커밋 전에 `pnpm format`(Prettier)과 `pnpm lint`를 실행해 포맷/린트 이슈를 정리한다. husky + lint-staged pre-commit 훅이 커밋 시 변경 파일에 대해 이를 자동 실행한다.
 
 ## 참고 문서
 
@@ -32,7 +39,7 @@ docs/draft/         # 장기 비전 초안 (참고용, 현재 범위 아님)
 
 - React + TypeScript, 빌드 도구: rsbuild
 - 패키지 매니저: pnpm (npm/yarn 명령 사용 금지)
-- 지도: Kakao Map API
+- 지도: Kakao Map API (`react-kakao-maps-sdk`)
 - 스타일: Tailwind CSS(레이아웃/spacing) + Ant Design(컴포넌트, theme token으로 커스터마이즈). Tailwind로 antd 내부 스타일을 직접 오버라이드하지 않는다.
 - 상태 관리: zustand
 - 라우팅: TanStack Router

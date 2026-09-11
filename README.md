@@ -28,13 +28,14 @@ pnpm dev
 
 ### 환경 변수
 
-Kakao Map API 키가 필요합니다.
+`.env.example`을 복사해 `.env`를 만들고 키를 채웁니다.
+
+```bash
+cp .env.example .env
+```
 
 ```
 VITE_KAKAO_MAP_API_KEY=your_api_key
-```
-
-```
 VITE_VWORLD_API_KEY=your_api_key
 ```
 
