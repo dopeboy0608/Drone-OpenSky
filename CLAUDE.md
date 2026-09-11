@@ -9,6 +9,13 @@
 - `pnpm dev` — 개발 서버 실행
 - `pnpm build` — 프로덕션 빌드
 - `pnpm preview` — 프로덕션 빌드 로컬 미리보기
+- `pnpm lint` — ESLint 검사
+- `pnpm lint:fix` — ESLint 자동 수정
+- `pnpm format` — Prettier로 코드 포맷
+
+## 코드 작성 후 규칙
+
+코드를 작성하거나 수정한 뒤에는 커밋 전에 `pnpm format`(Prettier)과 `pnpm lint`를 실행해 포맷/린트 이슈를 정리한다.
 
 ## 참고 문서
 
