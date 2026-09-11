@@ -16,4 +16,14 @@ node_modules/
 
 # Logs
 *.log
+*.log*
 /.idea/
+
+# Build output
+dist/
+
+# Rsbuild
+.rspack-profile-*/
+
+# Local
+*.local

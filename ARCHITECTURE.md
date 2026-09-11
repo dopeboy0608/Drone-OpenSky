@@ -37,6 +37,7 @@ VWorld WFS API (EPSG:4326, GeoJSON)
 - 레이아웃, spacing, 반응형은 Tailwind로 처리한다.
 - 컴포넌트 자체 룩(버튼, 인풋 등 antd 컴포넌트의 내부 스타일)은 antd theme token으로 커스터마이즈한다.
 - Tailwind로 antd 컴포넌트 내부를 직접 오버라이드하지 않는다.
+- Kakao Map 컨테이너 크기는 뷰포트에 맞춰 반응형으로 처리한다 (모바일 웹 대응).
 
 ## Out of scope (future)
 
