@@ -12,9 +12,11 @@ src/
     Map/            # Kakao Map 초기화 및 컨테이너
     PolygonLayer/   # GeoJSON → Kakao Map Polygon 렌더링
   routes/           # TanStack Router 라우트 정의 (현재는 단일 라우트)
-  api/              # axios 클라이언트, TanStack Query 훅
+  api/              # axios 클라이언트(client.ts), TanStack Query 훅
   store/            # zustand 스토어
 ```
+
+지도 렌더링은 `react-kakao-maps-sdk`를 사용한다.
 
 ## 데이터 흐름
 
@@ -31,6 +33,7 @@ VWorld WFS API (EPSG:4326, GeoJSON)
 - 서버 데이터 조회는 기본적으로 TanStack Query 훅으로 감싼다 (캐싱, 재시도, 로딩 상태 관리 필요).
 - 캐싱/재시도가 필요 없는 단발성 조회는 axios를 직접 사용해도 된다.
 - 두 경우 모두 axios 인스턴스(공통 클라이언트, 인터셉터)는 `api/` 아래에서만 생성한다.
+- VWorld API 호출은 `src/api/client.ts`의 `vworldClient`를 사용한다. 요청 인터셉터가 `VITE_VWORLD_API_KEY`를 자동으로 붙이므로 호출부에서 키를 직접 넘기지 않는다.
 
 ## 스타일링 규칙 (Tailwind / Ant Design)
 

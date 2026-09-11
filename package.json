@@ -9,7 +9,17 @@
     "preview": "rsbuild preview",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{js,jsx,json,css,md}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@tanstack/react-query": "^5.102.8",
@@ -18,6 +28,7 @@
     "axios": "^1.20.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "react-kakao-maps-sdk": "^1.2.2",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
@@ -33,6 +44,9 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.6",
     "globals": "^17.12.0",
+    "husky": "^9.1.7",
+    "kakao.maps.d.ts": "^0.1.40",
+    "lint-staged": "^17.5.1",
     "prettier": "^3.9.6",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
