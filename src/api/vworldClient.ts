@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+// VWorld API는 CORS를 지원하지 않아 개발 서버 프록시(/api/vworld → rsbuild.config.ts)를 거쳐 호출한다.
+// 프로덕션 배포 시에는 별도 프록시/서버가 필요하다 (ROADMAP.md TODO 참고).
 export const vworldClient = axios.create({
-  baseURL: 'https://api.vworld.kr/req',
+  baseURL: '/api/vworld',
 });
 
 vworldClient.interceptors.request.use((config) => {
