@@ -25,7 +25,10 @@ const mapRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([indexRoute, mapRoute]);
 
-export const router = createRouter({ routeTree });
+export const router = createRouter({
+  routeTree,
+  basepath: import.meta.env.VITE_BASE_PATH,
+});
 
 declare module '@tanstack/react-router' {
   interface Register {
