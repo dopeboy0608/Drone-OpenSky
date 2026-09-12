@@ -18,6 +18,16 @@ src/
 
 지도 렌더링은 `react-kakao-maps-sdk`를 사용한다.
 
+## 기술 스택
+
+- React + TypeScript, 빌드 도구: rsbuild
+- 패키지 매니저: pnpm
+- 지도: Kakao Map API (`react-kakao-maps-sdk`)
+- 스타일: Tailwind CSS(레이아웃/spacing) + Ant Design(컴포넌트, theme token으로 커스터마이즈)
+- 상태 관리: zustand
+- 라우팅: TanStack Router
+- 데이터 조회: axios (역할 분리 기준은 아래 [API 조회 규칙](#api-조회-규칙-axios--tanstack-query) 참고)
+
 ## 데이터 흐름
 
 ```

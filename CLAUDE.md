@@ -2,7 +2,7 @@
 
 ## 프로젝트 목적 / 현재 범위
 
-드론 비행 가능/제한/불가 구역을 실시간 지도 기반으로 제공하는 서비스. 현재 구현 범위는 Kakao Map 지도 뷰 위에 공공 API 데이터를 폴리곤으로 표시하는 것까지다. 필터, 로그인, DB, AI 추천, 커뮤니티 기능은 아직 범위 밖이다 (자세한 내용은 [ROADMAP.md](./ROADMAP.md), [ARCHITECTURE.md](./ARCHITECTURE.md#out-of-scope-future) 참고). 범위 밖 기능을 임의로 구현하지 않는다.
+드론 비행 가능/제한/불가 구역을 실시간 지도 기반으로 제공하는 서비스. 현재 구현 범위는 Kakao Map 지도 뷰 위에 공공 API 데이터를 폴리곤으로 표시하는 것까지다. 필터, 로그인, DB, AI 추천, 커뮤니티 기능은 아직 범위 밖이다 (자세한 내용은 [ROADMAP.md](./docs/ROADMAP.md), [ARCHITECTURE.md](./docs/ARCHITECTURE.md#out-of-scope-future) 참고). 범위 밖 기능을 임의로 구현하지 않는다.
 
 ## 명령어
 
