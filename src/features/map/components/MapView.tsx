@@ -1,5 +1,9 @@
+import { Spin } from 'antd';
 import { Map, useKakaoLoader } from 'react-kakao-maps-sdk';
 
+import { AirspaceLegend } from '@/features/airspace/components/AirspaceLegend';
+import { AirspacePolygonLayer } from '@/features/airspace/components/AirspacePolygonLayer';
+import { useAirspaceZoneQueries } from '@/features/airspace/queries/useAirspaceZoneQueries';
 import { useCurrentCenter } from '@/features/map/hooks/useCurrentCenter';
 
 export const MapView = () => {
@@ -7,6 +11,7 @@ export const MapView = () => {
     appkey: import.meta.env.VITE_KAKAO_MAP_API_KEY,
   });
   const center = useCurrentCenter();
+  const airspaceZoneResults = useAirspaceZoneQueries();
 
   if (error) {
     return (
@@ -22,5 +27,21 @@ export const MapView = () => {
     );
   }
 
-  return <Map center={center} level={5} style={{ width: '100%', height: '100%' }} />;
+  const isAnyZoneLoading = airspaceZoneResults.some((result) => result.isLoading);
+
+  return (
+    <div className="relative h-full w-full">
+      {isAnyZoneLoading && (
+        <div className="absolute top-4 left-1/2 z-10 -translate-x-1/2">
+          <Spin />
+        </div>
+      )}
+      <Map center={center} level={5} style={{ width: '100%', height: '100%' }}>
+        {airspaceZoneResults.map(({ config, data }) => (
+          <AirspacePolygonLayer key={config.level} config={config} data={data} />
+        ))}
+      </Map>
+      <AirspaceLegend />
+    </div>
+  );
 };

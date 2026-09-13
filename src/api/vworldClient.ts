@@ -1,7 +1,11 @@
 import axios from 'axios';
 
+// 브라우저에서 VWorld를 직접 호출하면 CORS로 막힌다. rsbuild dev 서버에서만 프록시
+// (rsbuild.config.ts의 server.proxy `/vworld-api`)를 거친다. `MODE === 'development'`로
+// 판단해야 Vitest(mode: 'test')에서는 실제 VWorld 도메인 그대로 MSW가 가로챌 수 있다.
+// 프로덕션(GitHub Pages 정적 호스팅)은 프록시가 없어 VWorld 도메인을 직접 호출한다.
 export const vworldClient = axios.create({
-  baseURL: 'https://api.vworld.kr/req',
+  baseURL: import.meta.env.MODE === 'development' ? '/vworld-api' : 'https://api.vworld.kr/req',
 });
 
 vworldClient.interceptors.request.use((config) => {

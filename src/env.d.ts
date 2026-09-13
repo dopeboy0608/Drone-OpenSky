@@ -12,6 +12,9 @@ interface ImportMetaEnv {
   readonly VITE_KAKAO_MAP_API_KEY: string;
   readonly VITE_VWORLD_API_KEY: string;
   readonly VITE_BASE_PATH: string;
+  readonly DEV: boolean;
+  readonly PROD: boolean;
+  readonly MODE: string;
 }
 
 interface ImportMeta {
