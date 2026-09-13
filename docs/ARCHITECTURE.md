@@ -46,6 +46,41 @@ VWorld WFS API (EPSG:4326, GeoJSON)
 - VWorld(지역/구역 조회) API 호출은 `src/api/vworldClient.ts`의 `vworldClient`를 사용한다. 요청 인터셉터가 `VITE_VWORLD_API_KEY`를 자동으로 붙이므로 호출부에서 키를 직접 넘기지 않는다.
 - 향후 게시글 등록 등 별도 DB/API 서버가 추가되면 `src/api/` 아래에 그 서버 전용 axios 인스턴스 파일(예: `communityClient.ts`)을 따로 만든다. VWorld 클라이언트와 혼용하지 않는다.
 
+## TDD 적용 기준
+
+이슈 #11(테스트 하네스)에서 정의. 아래 기준으로 TDD 적용 대상을 구분한다.
+
+- **TDD 대상**: 입출력이 명확하고 부수효과가 없는 순수 함수. 테스트를 먼저 쓰고 구현한다.
+  - 대표 사례: VWorld GeoJSON 응답의 `geometry.coordinates`(`MultiPolygon`, `[lng, lat]` 순서)를
+    `kakao.maps.LatLng[][]`로 변환하는 함수 (예정 위치: `src/features/airspace/utils/`).
+    입력(좌표 배열)과 기대 출력(LatLng 배열)이 고정돼 있고 네트워크·DOM 의존이 없어
+    TDD로 다루기 좋은 첫 대상이다.
+  - typename별 properties(예: `prh_lbl_*`, `res_lbl_*`)에서 라벨/고도 정보를 정규화하는
+    함수가 생기면 마찬가지로 TDD 대상.
+- **TDD 대상 아님**: React 컴포넌트, 커스텀 훅(geolocation 등 부수효과 중심), axios
+  인터셉터처럼 외부 상태·환경에 의존하는 코드. 이런 코드는 `docs/spec/`(SDD 템플릿)으로
+  먼저 스펙을 정리하고, 필요 시 사후에 통합/컴포넌트 테스트로 검증한다.
+
+## Kakao Maps SDK 모킹 전략
+
+`react-kakao-maps-sdk`의 `useKakaoLoader`는 실제로 `<script>` 태그를 주입해 Kakao SDK를
+비동기 로딩한다. jsdom 테스트 환경에서는 이 스크립트가 로딩되지 않아 그대로 두면
+`loading` 상태에서 멈추고, 전역 `kakao`도 존재하지 않는다. 테스트 대상에 따라 다르게
+접근한다.
+
+- **순수 로직 테스트** (예: GeoJSON coordinates → `kakao.maps.LatLng[][]` 변환 함수):
+  실제 SDK를 흉내낼 필요 없이, 테스트 대상이 실제로 쓰는 `kakao.maps.*` API만 최소로
+  구현한 목을 전역에 심는다. `src/test/mocks/kakaoMaps.ts`의 `installKakaoMapsMock()` /
+  `uninstallKakaoMapsMock()`을 각 테스트의 준비/정리 단계에서 호출한다. 새 API가
+  필요해지면 이 파일에 필요한 만큼만 추가한다(SDK 전체 재현 금지).
+- **컴포넌트 테스트** (예: `MapView`처럼 `useKakaoLoader`/`Map`/`Polygon`을 쓰는 컴포넌트):
+  `vi.mock('react-kakao-maps-sdk', ...)`으로 모듈 자체를 대체해 `useKakaoLoader`가
+  즉시 `[false, undefined]`(로딩 완료)를 반환하게 하고, 사용하는 컴포넌트(`Map`,
+  `Polygon` 등)는 테스트에서 검증하기 쉬운 단순 컴포넌트(예: `data-testid`가 있는
+  `div`)로 대체한다. 아직 이런 컴포넌트 테스트 대상이 없어 공용 목 파일은 만들지
+  않았다 — 실제로 필요해지면 테스트별로 `vi.mock`을 작성하고, 반복되면
+  `src/test/mocks/react-kakao-maps-sdk.tsx`로 뽑아 공유한다.
+
 ## 스타일링 규칙 (Tailwind / Ant Design)
 
 - 레이아웃, spacing, 반응형은 Tailwind로 처리한다.
