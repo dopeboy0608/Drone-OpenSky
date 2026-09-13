@@ -33,6 +33,16 @@ export default defineConfig({
   },
   server: {
     base: basePath,
+    // VWorld WFS는 브라우저 직접 호출 시 CORS를 막는다. dev 서버에서만 같은 오리진으로
+    // 우회하도록 프록시한다 (프로덕션은 GitHub Pages 정적 호스팅이라 프록시 불가 —
+    // src/api/vworldClient.ts에서 프로덕션 빌드는 VWorld 도메인을 직접 호출).
+    proxy: {
+      '/vworld-api': {
+        target: 'https://api.vworld.kr',
+        changeOrigin: true,
+        pathRewrite: { '^/vworld-api': '/req' },
+      },
+    },
   },
   html: {
     title: siteTitle,
