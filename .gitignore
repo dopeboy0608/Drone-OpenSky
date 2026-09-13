@@ -27,3 +27,6 @@ dist/
 
 # Local
 *.local
+
+# 일별 작업 히스토리 로그 (로컬 전용, git 추적 안 함)
+docs/history/
