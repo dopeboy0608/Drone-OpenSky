@@ -12,10 +12,21 @@
 - `pnpm lint` — ESLint 검사
 - `pnpm lint:fix` — ESLint 자동 수정
 - `pnpm format` — Prettier로 코드 포맷
+- `pnpm test` — Vitest 실행 (watch 모드 없음, 1회 실행)
 
 ## 코드 작성 후 규칙
 
 코드를 작성하거나 수정한 뒤에는 커밋 전에 `pnpm format`(Prettier)과 `pnpm lint`를 실행해 포맷/린트 이슈를 정리한다. husky + lint-staged pre-commit 훅이 커밋 시 변경 파일에 대해 이를 자동 실행한다.
+
+## 테스트 하네스 적용 기준
+
+별도 요청이 없어도 아래 상황에 해당하면 자동으로 적용한다 (이슈 #11, [ARCHITECTURE.md](./docs/ARCHITECTURE.md) 참고).
+
+- 새 기능을 시작하기 전에는 [docs/spec/TEMPLATE.md](./docs/spec/TEMPLATE.md)를 복사해 `docs/spec/<이슈번호>-<기능명>.md`로 스펙(입력/기대 동작/엣지케이스)을 먼저 정리한다.
+- 입출력이 명확하고 부수효과 없는 순수 함수(좌표 변환 등, 기준은 ARCHITECTURE.md "TDD 적용 기준" 참고)는 테스트를 먼저 쓰고 구현한다(TDD).
+- axios 기반 API 호출(VWorld 등) 로직을 추가/수정할 때는 MSW로 정상/에러 응답 등 엣지케이스를 테스트로 검증한다.
+- Kakao Maps SDK(`kakao.maps.*`, `react-kakao-maps-sdk`)를 다루는 코드를 테스트할 때는 실제 SDK를 로딩하지 않고 ARCHITECTURE.md "Kakao Maps SDK 모킹 전략"에 따라 모킹한다.
+- 코드 작성/수정을 마치면 `pnpm test`도 실행해 통과를 확인한다.
 
 ## 참고 문서
 
