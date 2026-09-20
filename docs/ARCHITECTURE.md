@@ -18,6 +18,8 @@ src/
 
 지도 렌더링은 `react-kakao-maps-sdk`를 사용한다.
 
+프론트엔드(`src/`)와 별개로, 저장소 루트에 배포 관련 디렉터리가 있다: `server/`(VWorld relay용 Vercel 서버리스 함수, 이슈 #16), `wrangler.toml`(Cloudflare Workers 정적 자산 배포 설정). 둘 다 `src/`의 프론트엔드 빌드 대상이 아니라 별도 배포 단위다.
+
 ## 기술 스택
 
 - React + TypeScript, 빌드 도구: rsbuild
@@ -43,7 +45,7 @@ VWorld WFS API (EPSG:4326, GeoJSON)
 - 서버 데이터 조회는 기본적으로 axios를 직접 사용한다. 호출 로직은 컴포넌트/훅에 인라인으로 두지 않고 API 호출 유틸 함수로 만들어 사용한다.
 - 캐싱, 재시도, 백그라운드 리페치 등 TanStack Query의 기능이 필요하다고 판단되면 임의로 도입하지 않고 먼저 사용자에게 제안해 동의를 받은 뒤 적용한다.
 - 두 경우 모두 axios 인스턴스(공통 클라이언트, 인터셉터)는 `api/` 아래에서만 생성한다.
-- VWorld(지역/구역 조회) API 호출은 `src/api/vworldClient.ts`의 `vworldClient`를 사용한다. 요청 인터셉터가 `VITE_VWORLD_API_KEY`를 자동으로 붙이므로 호출부에서 키를 직접 넘기지 않는다.
+- VWorld(지역/구역 조회) API 호출은 `src/api/vworldClient.ts`의 `vworldClient`를 사용한다. dev에서는 요청 인터셉터가 `VITE_VWORLD_API_KEY`를 자동으로 붙이지만, 프로덕션은 Vercel 서버리스 함수(`server/api/vworld-api/[...path].ts`, 이슈 #16)가 `VWORLD_API_KEY` 환경변수를 서버 사이드에서 주입하므로 호출부에서 키를 직접 넘기지 않는다. 이 함수는 서울 리전(`server/vercel.json`의 `regions: ["icn1"]`)에 고정 배포해 VWorld의 CORS 중계(+ 해외 클라우드 IP 차단 우회)를 겸한다 (상세: [TROUBLE_SHOOTING.md](./TROUBLE_SHOOTING.md)). 프론트엔드는 GitHub Pages + Cloudflare Workers(정적 자산 전용, `wrangler.toml`)에 이중 배포한다.
 - 향후 게시글 등록 등 별도 DB/API 서버가 추가되면 `src/api/` 아래에 그 서버 전용 axios 인스턴스 파일(예: `communityClient.ts`)을 따로 만든다. VWorld 클라이언트와 혼용하지 않는다.
 
 ## TDD 적용 기준

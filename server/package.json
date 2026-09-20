@@ -1,0 +1,11 @@
+{
+  "name": "drone-opensky-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "@vercel/node": "^13.0.1",
+    "typescript": "^7.0.2"
+  }
+}
