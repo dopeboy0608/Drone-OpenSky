@@ -5,10 +5,11 @@
 국토교통부 산하 공간정보 오픈플랫폼. WFS로 초경량비행장치공역, 비행제한/금지구역 등 항공 레이어를 제공한다.
 
 - 발급: https://www.vworld.kr 에서 인증키 신청 (문의처 1661-0115).
-- 인증 방식: 키 발급 시 등록한 **서비스 URL(Referer 도메인)** 기준으로 검증한다. 등록 도메인과 다른 곳에서 요청하면 요청 파라미터가 맞아도 `INCORRECT_KEY` 에러가 반환된다.
-  - 로컬 개발용 키는 서비스 URL을 `http://localhost:3000`으로 등록해 발급받았다 (`.env`의 `VITE_VWORLD_API_KEY`). rsbuild dev 서버 기본 포트(3000)와 동일하게 맞춰야 한다.
-  - 배포된 서비스(GitHub Pages, `https://dopeboy0608.github.io`)에서 쓸 키는 별도로 그 도메인으로 등록해야 한다. 즉 로컬 개발용 키와 운영 배포용 키를 다르게 관리해야 한다 (환경별 키 분리 방식은 배포 파이프라인 구성 시 결정 — [미확인 사항](#미확인-사항) 참고).
-  - curl 등으로 직접 검증할 때는 `Referer` 헤더를 등록 도메인 값과 동일하게 지정해야 한다 (예: `curl -H "Referer: http://localhost:3000/" ...`). 브라우저에서 실행될 때는 브라우저가 Referer를 자동으로 보내므로 별도 처리가 필요 없다.
+- 인증 방식: 키 발급 시 **서비스 URL(Referer 도메인)**을 등록해야 하지만, 실제 요청 검증은 `Referer` 헤더가 존재하는지만 확인한다 — 등록 도메인과 값이 달라도 통과한다(2026-09-20 relay 검증 중 curl로 재현/확인, [TROUBLE_SHOOTING.md](./TROUBLE_SHOOTING.md) 참고). `Referer` 헤더가 아예 없으면 파라미터가 맞아도 `INCORRECT_KEY` 에러가 반환된다.
+  - 로컬 개발용 키는 서비스 URL을 `http://localhost:3000`으로 등록해 발급받았다 (`.env`의 `VITE_VWORLD_API_KEY`). 브라우저가 Referer를 자동으로 보내므로 dev 환경(rsbuild 프록시 경유)은 별도 처리가 필요 없다.
+  - 프로덕션(Vercel relay, 이슈 #16)은 `fetch()`가 Referer를 보내지 않으므로 relay가 직접 `Referer` 헤더를 채워 보낸다(`server/api/vworld-api/[...path].ts`). 위 검증 결과에 따라 같은 개발용 키를 프로덕션에도 그대로 재사용할 수 있다 — 도메인이 다른 운영키를 별도 발급받을 필요는 없다.
+  - curl 등으로 직접 검증할 때도 `Referer` 헤더를 아무 값이나 지정하면 통과한다 (예: `curl -H "Referer: http://localhost:3000/" ...`).
+- **네트워크 제약**: VWorld는 Cloudflare 등 해외 클라우드 엣지 IP로부터의 요청을 차단하는 것으로 보인다(2026-09-20 확인, [TROUBLE_SHOOTING.md](./TROUBLE_SHOOTING.md) 참고). 서버리스 relay를 배포할 때는 실행 리전을 한국(예: Vercel `icn1`)으로 명시적으로 고정해야 한다.
 - 응답 포맷: WFS 요청 시 `application/json`(GeoJSON) 직접 지원 — 별도 변환 없이 사용 가능. 인증/요청 오류 시에는 HTTP 200과 함께 XML `ServiceExceptionReport`를 반환한다 (`src/api/vworldClient.ts`가 이를 감지해 reject 처리).
 - 좌표계: EPSG:4326(WGS84), EPSG:5179(UTM-K) 등 파라미터로 선택 가능. Kakao Map은 WGS84 기준이므로 `EPSG:4326`으로 요청한다.
 
@@ -157,5 +158,4 @@ VWorld WFS 응답(GeoJSON FeatureCollection)의 `geometry.coordinates`(`MultiPol
 - 28개 typename 중 1단계 폴리곤 렌더링에 실제로 포함할 항목
 - VWorld 키 발급 실제 승인 소요기간
 - 각 레이어의 갱신 주기 및 데이터 신뢰도
-- 로컬용/운영용 키를 환경변수로 분리 관리하는 방식 (예: `.env` vs GitHub Actions secrets)
 - `prh_typ` 코드값의 의미 (관측 표본이 `"1"` 하나뿐)

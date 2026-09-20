@@ -25,6 +25,9 @@ dist/
 # Rsbuild
 .rspack-profile-*/
 
+# Cloudflare Workers (wrangler local cache/state)
+.wrangler/
+
 # Local
 *.local
 

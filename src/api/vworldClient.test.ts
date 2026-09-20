@@ -5,7 +5,7 @@ import { server } from '@/test/mocks/server';
 
 import { vworldClient } from './vworldClient';
 
-const WFS_URL = 'https://api.vworld.kr/req/wfs';
+const WFS_URL = 'https://server-eosin-five-92.vercel.app/api/vworld-api/wfs';
 
 describe('vworldClient', () => {
   it('정상 GeoJSON 응답을 그대로 반환한다', async () => {

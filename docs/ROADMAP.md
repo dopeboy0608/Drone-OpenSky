@@ -40,87 +40,12 @@
 
 ## 인프라/배포 (단계 무관, 병행 트랙)
 
-- GitHub Actions를 통한 배포
-- 무료 인프라 + 도메인 사용 방식으로 결정 예정 (인프라 미확정)
-- 기능 단계와 독립적으로 준비되는 대로 진행
-- 아래는 `.github/workflows/` 워크플로우 초안이다. 인프라가 미확정이라 실제 파일로는 만들지 않고 문서로만 남긴다. 인프라 확정 시 이 내용을 기반으로 `.github/workflows/ci.yml`, `deploy.yml`을 작성한다.
-
-### CI 워크플로우 초안 (`ci.yml`)
-
-push/PR 시 lint + build 검증.
-
-```yaml
-name: CI
-
-on:
-  push:
-    branches: [master]
-  pull_request:
-    branches: [master]
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Build
-        env:
-          VITE_KAKAO_MAP_API_KEY: ${{ secrets.VITE_KAKAO_MAP_API_KEY }}
-          VITE_VWORLD_API_KEY: ${{ secrets.VITE_VWORLD_API_KEY }}
-        run: pnpm build
-```
-
-### 배포 워크플로우 초안 (`deploy.yml`)
-
-인프라(Vercel/Netlify/GitHub Pages 등) 확정 후 `on.push`로 바꾸고, `Deploy` 스텝을 실제 배포 액션으로 채운다. 지금은 실수 방지를 위해 `workflow_dispatch`(수동 실행)만 구상.
-
-```yaml
-name: Deploy
-
-on:
-  workflow_dispatch: {}
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build
-        env:
-          VITE_KAKAO_MAP_API_KEY: ${{ secrets.VITE_KAKAO_MAP_API_KEY }}
-          VITE_VWORLD_API_KEY: ${{ secrets.VITE_VWORLD_API_KEY }}
-        run: pnpm build
-
-      # TODO: 인프라 확정 후 배포 스텝 추가
-      # 예) Vercel: vercel/actions, Netlify: netlify/actions,
-      #     GitHub Pages: actions/upload-pages-artifact + actions/deploy-pages
-      - name: Deploy (TODO)
-        run: echo "배포 인프라 결정 후 이 스텝을 채운다"
-```
+- 프론트엔드: GitHub Pages(`.github/workflows/deploy.yml`, push to master 시 자동 배포)와
+  Cloudflare Workers 정적 자산(`wrangler.toml`, `wrangler deploy`로 수동 배포)에 동일 빌드를
+  이중 배포한다. GitHub Pages는 서브경로(`GH_PAGES_BASE_PATH`), Workers는 루트 경로로 각각
+  다르게 빌드해야 한다.
+- API: VWorld WFS 프록시(CORS 우회 + 키 주입)는 Vercel 서버리스 함수
+  (`server/api/vworld-api/[...path].ts`, 서울 리전 `icn1` 고정)로 배포한다 — VWorld가
+  Cloudflare 등 해외 클라우드 엣지 IP를 차단해 Cloudflare Worker로는 불가능함을 확인했다
+  (이슈 #16, 상세는 [ARCHITECTURE.md](./ARCHITECTURE.md), [TROUBLE_SHOOTING.md](./TROUBLE_SHOOTING.md) 참고).
+- CI(lint/test 자동 검증)는 별도 트랙(이슈 #11)에서 진행 중이며 아직 워크플로우 파일은 없다.

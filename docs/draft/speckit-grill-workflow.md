@@ -43,18 +43,18 @@ specify init . --integration claude             # 현재 디렉터리
 
 슬래시 이름은 **하이픈**이다 (`/speckit.specify` 아님).
 
-| 커맨드 | 역할 |
-|---|---|
-| `/speckit-constitution` | 프로젝트 원칙 수립 (1회) |
-| `/speckit-specify` | 요구사항 → 스펙 |
-| `/speckit-clarify` | (선택) 모호한 부분 구조적 질문 — **plan 전에** |
-| `/speckit-plan` | 기술 설계 |
-| `/speckit-checklist` | (선택) 요구사항 완성도 체크리스트 — plan 후 |
-| `/speckit-tasks` | 의존성 순서 태스크 분해 |
-| `/speckit-analyze` | (선택) 산출물 간 정합성 검사 — tasks 후, implement 전 |
-| `/speckit-taskstoissues` | **tasks.md → GitHub Issues 변환** |
-| `/speckit-implement` | 구현 실행 |
-| `/speckit-converge` | 기존 코드베이스 평가 → 남은 작업을 태스크로 추가 |
+| 커맨드                   | 역할                                                  |
+| ------------------------ | ----------------------------------------------------- |
+| `/speckit-constitution`  | 프로젝트 원칙 수립 (1회)                              |
+| `/speckit-specify`       | 요구사항 → 스펙                                       |
+| `/speckit-clarify`       | (선택) 모호한 부분 구조적 질문 — **plan 전에**        |
+| `/speckit-plan`          | 기술 설계                                             |
+| `/speckit-checklist`     | (선택) 요구사항 완성도 체크리스트 — plan 후           |
+| `/speckit-tasks`         | 의존성 순서 태스크 분해                               |
+| `/speckit-analyze`       | (선택) 산출물 간 정합성 검사 — tasks 후, implement 전 |
+| `/speckit-taskstoissues` | **tasks.md → GitHub Issues 변환**                     |
+| `/speckit-implement`     | 구현 실행                                             |
+| `/speckit-converge`      | 기존 코드베이스 평가 → 남은 작업을 태스크로 추가      |
 
 ### 확장·훅 시스템
 
@@ -73,15 +73,15 @@ specify init . --integration claude             # 현재 디렉터리
 
 핵심은 **speckit이 grill-me를 대체하지 않는다**는 것. 담당 구간이 다르다.
 
-| 레이어 | 도구 | 담당 | 산출물 |
-|---|---|---|---|
-| L0 | 메모장 | 백로그 inbox. 러프한 아이디어 적재 | 메모 |
-| L1 | **grill-me** | 선별 + 문제 정의. "이거 진짜 필요한가 / 뭐가 진짜 문제인가" | 대화 (휘발) |
-| L2 | **speckit** | 명세 + 설계 + 분해. "어떻게 / 무슨 순서로" | `specs/NNN-*/` |
-| L3 | **GitHub Issues** | 실행 원장. 무엇이 남았나 | 이슈 |
-| L4 | **하네스** | 구현 + 테스트 실행 | 코드, 테스트 결과 |
+| 레이어 | 도구              | 담당                                                        | 산출물            |
+| ------ | ----------------- | ----------------------------------------------------------- | ----------------- |
+| L0     | 메모장            | 백로그 inbox. 러프한 아이디어 적재                          | 메모              |
+| L1     | **grill-me**      | 선별 + 문제 정의. "이거 진짜 필요한가 / 뭐가 진짜 문제인가" | 대화 (휘발)       |
+| L2     | **speckit**       | 명세 + 설계 + 분해. "어떻게 / 무슨 순서로"                  | `specs/NNN-*/`    |
+| L3     | **GitHub Issues** | 실행 원장. 무엇이 남았나                                    | 이슈              |
+| L4     | **하네스**        | 구현 + 테스트 실행                                          | 코드, 테스트 결과 |
 
-**grill-me는 speckit 앞에 둔다.** 러프한 메모를 `/speckit-specify` 에 바로 넣으면 *길지만 얕은* 스펙이 나온다. 분량에 속기 쉽다. grill로 한 번 조지고 나면 입력 품질이 올라가 결과가 확연히 달라진다.
+**grill-me는 speckit 앞에 둔다.** 러프한 메모를 `/speckit-specify` 에 바로 넣으면 _길지만 얕은_ 스펙이 나온다. 분량에 속기 쉽다. grill로 한 번 조지고 나면 입력 품질이 올라가 결과가 확연히 달라진다.
 
 ---
 
@@ -119,13 +119,13 @@ specify init . --integration claude             # 현재 디렉터리
 
 ### 게이트 (다음 단계로 넘어가는 조건)
 
-| 게이트 | 통과 조건 |
-|---|---|
+| 게이트          | 통과 조건                                                 |
+| --------------- | --------------------------------------------------------- |
 | grill → specify | 문제 정의 한 문단으로 쓸 수 있음. 못 쓰면 아직 grill 단계 |
-| specify → plan | `[NEEDS CLARIFICATION]` 마커가 0개 |
-| plan → tasks | 기술 선택에 "나중에 정함"이 없음 |
-| tasks → issues | 태스크 하나가 한 세션에 끝나는 크기 |
-| issues → 구현 | 이슈 본문만 읽고 착수 가능 (스펙 안 열어봐도 됨) |
+| specify → plan  | `[NEEDS CLARIFICATION]` 마커가 0개                        |
+| plan → tasks    | 기술 선택에 "나중에 정함"이 없음                          |
+| tasks → issues  | 태스크 하나가 한 세션에 끝나는 크기                       |
+| issues → 구현   | 이슈 본문만 읽고 착수 가능 (스펙 안 열어봐도 됨)          |
 
 ---
 
@@ -133,11 +133,11 @@ specify init . --integration claude             # 현재 디렉터리
 
 **전부 speckit에 태우면 망한다.** 기능마다 브랜치 + `specs/NNN-*/` 폴더가 생긴다. 메모 20개를 다 넣으면 브랜치 20개다.
 
-| 크기 | 기준 | 경로 |
-|---|---|---|
-| **S** | 30분 이내, 파일 1~2개, 판단 불필요 | 메모 → 이슈 직접 생성 → 구현. grill·speckit 전부 생략 |
-| **M** | 한 세션, 설계 판단 약간 | grill → 이슈 → 구현. speckit 생략 |
-| **L** | 여러 세션, 여러 파일, 설계 판단 필요 | 3절 전체 플로우 |
+| 크기  | 기준                                 | 경로                                                  |
+| ----- | ------------------------------------ | ----------------------------------------------------- |
+| **S** | 30분 이내, 파일 1~2개, 판단 불필요   | 메모 → 이슈 직접 생성 → 구현. grill·speckit 전부 생략 |
+| **M** | 한 세션, 설계 판단 약간              | grill → 이슈 → 구현. speckit 생략                     |
+| **L** | 여러 세션, 여러 파일, 설계 판단 필요 | 3절 전체 플로우                                       |
 
 의심스러우면 **한 단계 낮게** 잡는다. 모자라면 올리면 되지만, 과한 의식은 되돌리기 어렵고 의욕을 깎는다.
 
@@ -193,9 +193,9 @@ done
 hooks:
   after_taskstoissues:
     - extension: local
-      command: my.harness.sync      # → /my-harness-sync 로 호출됨 (점→하이픈 변환)
+      command: my.harness.sync # → /my-harness-sync 로 호출됨 (점→하이픈 변환)
       description: 생성된 이슈를 하네스 큐에 등록
-      optional: false               # false면 자동 실행, true면 안내만
+      optional: false # false면 자동 실행, true면 안내만
 ```
 
 > 훅 이름은 `before_<command>` / `after_<command>` 패턴.
@@ -272,14 +272,14 @@ speckit은 **이슈 생성까지만** 하고 손 뗀다. 그 뒤는 기존 하�
 
 이 문서가 임의로 정한 것들. 집에서 grill-me로 이 문서 자체를 심문할 때 쓸 목록.
 
-| # | 내린 결정 | 근거 | 대안 |
-|---|---|---|---|
-| A | grill-me 를 specify **앞**에 배치 | 입력 품질이 스펙 품질을 지배 | `/speckit-clarify` 가 그 역할을 충분히 하면 grill 생략 가능 |
-| B | 태스크 1개 = 이슈 1개 (도구 기본값) | `taskstoissues` 기본 동작 | **기능당 이슈 1개 + 본문 체크리스트.** 개인 프로젝트엔 이쪽이 나을 수 있음 |
-| C | `/speckit-implement` 미사용 | 하네스와 구현 주체 이원화 방지 | 하네스를 speckit 훅으로 흡수하고 implement 사용 |
-| D | GitHub Issues 가 진행상태 정본 | 기존 플로우 유지 | `tasks.md` 정본 + 이슈는 미러 |
-| E | S/M/L 3단 라우팅 | 과잉 의식 방지 | 전부 speckit 통일 (일관성 ↑, 오버헤드 ↑) |
-| F | 훅(A) 대신 느슨한 분리(B)로 시작 | 초기 디버깅 용이 | 처음부터 훅으로 완전 자동화 |
+| #   | 내린 결정                           | 근거                           | 대안                                                                       |
+| --- | ----------------------------------- | ------------------------------ | -------------------------------------------------------------------------- |
+| A   | grill-me 를 specify **앞**에 배치   | 입력 품질이 스펙 품질을 지배   | `/speckit-clarify` 가 그 역할을 충분히 하면 grill 생략 가능                |
+| B   | 태스크 1개 = 이슈 1개 (도구 기본값) | `taskstoissues` 기본 동작      | **기능당 이슈 1개 + 본문 체크리스트.** 개인 프로젝트엔 이쪽이 나을 수 있음 |
+| C   | `/speckit-implement` 미사용         | 하네스와 구현 주체 이원화 방지 | 하네스를 speckit 훅으로 흡수하고 implement 사용                            |
+| D   | GitHub Issues 가 진행상태 정본      | 기존 플로우 유지               | `tasks.md` 정본 + 이슈는 미러                                              |
+| E   | S/M/L 3단 라우팅                    | 과잉 의식 방지                 | 전부 speckit 통일 (일관성 ↑, 오버헤드 ↑)                                   |
+| F   | 훅(A) 대신 느슨한 분리(B)로 시작    | 초기 디버깅 용이               | 처음부터 훅으로 완전 자동화                                                |
 
 **특히 B를 먼저 검증할 것.** 개인 프로젝트에서 이슈 30개는 관리 대상이 아니라 소음이 되기 쉽다.
 

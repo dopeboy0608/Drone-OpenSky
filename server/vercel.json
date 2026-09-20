@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/vworld-api/[...path].ts": {
+      "regions": ["icn1"]
+    }
+  }
+}

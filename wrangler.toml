@@ -1,0 +1,10 @@
+name = "drone-opensky"
+compatibility_date = "2026-09-20"
+
+# VWorld relay는 이 Worker가 아니라 Vercel(icn1, 서울 리전) 서버리스 함수가 담당한다
+# (server/api/vworld.ts, 이슈 #16 — VWorld가 Cloudflare 해외 엣지發 요청을 차단해
+# Cloudflare에서는 relay가 불가능함을 확인. docs/TROUBLE_SHOOTING.md 참고).
+# 이 Worker는 순수 정적 자산(프론트엔드 이중 배포) 전용이라 Worker 스크립트가 없다.
+[assets]
+directory = "./dist"
+not_found_handling = "single-page-application"
