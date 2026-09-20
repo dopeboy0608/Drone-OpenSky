@@ -1,5 +1,5 @@
 import { Spin } from 'antd';
-import { Map, useKakaoLoader } from 'react-kakao-maps-sdk';
+import { Map as KakaoMap, useKakaoLoader } from 'react-kakao-maps-sdk';
 
 import { AirspaceLegend } from '@/features/airspace/components/AirspaceLegend';
 import { AirspacePolygonLayer } from '@/features/airspace/components/AirspacePolygonLayer';
@@ -36,11 +36,11 @@ export const MapView = () => {
           <Spin />
         </div>
       )}
-      <Map center={center} level={5} style={{ width: '100%', height: '100%' }}>
+      <KakaoMap center={center} level={5} style={{ width: '100%', height: '100%' }}>
         {airspaceZoneResults.map(({ config, data }) => (
           <AirspacePolygonLayer key={config.level} config={config} data={data} />
         ))}
-      </Map>
+      </KakaoMap>
       <AirspaceLegend />
     </div>
   );
