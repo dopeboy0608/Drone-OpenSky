@@ -44,7 +44,8 @@
 - 증상 2: 로컬 `tsc --noEmit`은 통과하는데 Vercel 빌드에서만 `error TS2688: Cannot find type definition file for 'node'`.
   - 원인: `server/tsconfig.json`에 `"types": ["node"]`를 명시했는데, Vercel 빌드 샌드박스의 pnpm 설치 구조에서 `@types/node`의 엔트리포인트를 못 찾음(로컬 node_modules 구조와 미묘하게 달랐던 것으로 추정).
   - 해결: `"types"` 옵션 자체를 제거해 TS 기본 동작(설치된 `@types/*` 전부 자동 포함)에 맡김.
-- 증상 3: 위 두 건을 고친 뒤에도 간헐적으로 `FUNCTION_INVOCATION_FAILED`(500)가 재현됨. `vercel logs`로 확인한 실제 에러는 `TypeError: invalid parameter format` at `res.status(...).send(...)` 체이닝 호출부.
-  - 원인: `@vercel/node`(v13)의 `res.status(code).send(body)` 메서드 체이닝 조합에서 간헐적으로 실패. 별도 문장으로 나눠 호출하면 재현되지 않음(정확한 내부 원인은 미확인이나 체이닝 자체가 트리거).
-  - 해결: `res.status(vworldResponse.status); res.send(body);`로 문장을 분리. 이후 8회 연속 요청 모두 정상.
+- 증상 3: 위 두 건을 고친 뒤에도 간헐적으로 `FUNCTION_INVOCATION_FAILED`(500)가 재현됨. `vercel logs`로 확인한 실제 에러는 `TypeError: invalid parameter format` at `res.status(...).send(...)` 호출부. 단일 요청으로 반복 테스트하면 재현이 안 되다가, 실제 프론트엔드처럼 여러 구역 typename을 **동시(병렬)에** 조회하면 재현됨 — GitHub Pages에서는 CORS 에러로, 마침 순차적으로 테스트한 Cloudflare Workers 프론트엔드에서는 우연히 성공으로 관측된 것으로 보임(사용자 리포트: "GitHub Pages는 CORS, Cloudflare는 성공" — 실제로는 동시성 문제로 인한 무작위 500이 GitHub Pages 쪽 테스트 타이밍에 더 걸린 것).
+  - 원인 1차 추정(틀림): `res.status(code).send(body)` 메서드 체이닝 — 문장을 분리(`res.status(...); res.send(...);`)했더니 단일 요청 8회는 통과했지만, 이후 병렬 요청(5개 typename 동시 호출)에서 다시 재현되어 체이닝이 원인이 아니었음을 확인.
+  - 원인: `@vercel/node`(v13)의 `res.status()`/`res.send()` 헬퍼 자체가 동일 함수 인스턴스에서 여러 요청을 동시 처리할 때 내부 상태가 꼬이는 것으로 추정(정확한 내부 메커니즘은 미확인).
+  - 해결: Vercel 전용 헬퍼 대신 Node 표준 API로 교체 — `res.statusCode = ...; res.end(body);`. 이후 5개 typename을 동시(병렬)로 3라운드(총 15회) 요청해도 전부 정상.
 - 관련 이슈/PR: #16

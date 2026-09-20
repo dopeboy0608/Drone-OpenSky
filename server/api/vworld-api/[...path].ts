@@ -20,7 +20,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Vary', 'Origin');
 
   if (req.method === 'OPTIONS') {
-    res.status(204).end();
+    res.statusCode = 204;
+    res.end();
     return;
   }
 
@@ -39,6 +40,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.setHeader('Content-Type', contentType);
   }
   const body = await vworldResponse.text();
-  res.status(vworldResponse.status);
-  res.send(body);
+  res.statusCode = vworldResponse.status;
+  res.end(body);
 }
