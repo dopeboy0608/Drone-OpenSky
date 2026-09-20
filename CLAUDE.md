@@ -9,14 +9,14 @@
 - `pnpm dev` — 개발 서버 실행
 - `pnpm build` — 프로덕션 빌드
 - `pnpm preview` — 프로덕션 빌드 로컬 미리보기
-- `pnpm lint` — ESLint 검사
-- `pnpm lint:fix` — ESLint 자동 수정
+- `pnpm lint` — Biome 린트 검사
+- `pnpm lint:fix` — Biome 린트 자동 수정
 - `pnpm format` — Prettier로 코드 포맷
 - `pnpm test` — Vitest 실행 (watch 모드 없음, 1회 실행)
 
 ## 코드 작성 후 규칙
 
-코드를 작성하거나 수정한 뒤에는 커밋 전에 `pnpm format`(Prettier)과 `pnpm lint`를 실행해 포맷/린트 이슈를 정리한다. husky + lint-staged pre-commit 훅이 커밋 시 변경 파일에 대해 이를 자동 실행한다.
+코드를 작성하거나 수정한 뒤에는 커밋 전에 `pnpm format`(Prettier)과 `pnpm lint`(Biome)를 실행해 포맷/린트 이슈를 정리한다. husky + lint-staged pre-commit 훅이 커밋 시 변경 파일에 대해 이를 자동 실행한다.
 
 ## 테스트 하네스 적용 기준
 
