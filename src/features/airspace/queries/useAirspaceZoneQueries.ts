@@ -7,8 +7,10 @@ import { AIRSPACE_ZONE_CONFIGS, AIRSPACE_ZONE_LABELS } from '@/features/airspace
 import type { AirspaceZoneConfig, VWorldFeatureCollection } from '@/features/airspace/types';
 import { tagFeatureZoneType } from '@/features/airspace/utils/tagFeatureZoneType';
 
-const STALE_TIME_MS = 30 * 60 * 1000;
+// 전국 공역 데이터(~50MB)를 그룹당 하루 한 번 이상 재다운로드하지 않도록 staleTime을 넉넉히 잡는다 (이슈 #37).
+const STALE_TIME_MS = 24 * 60 * 60 * 1000;
 const ERROR_TOAST_DURATION_SECONDS = 3;
+const INFO_TOAST_DURATION_SECONDS = 2;
 
 interface AirspaceZoneQueryResult {
   config: AirspaceZoneConfig;
@@ -19,7 +21,7 @@ interface AirspaceZoneQueryResult {
 
 interface UseAirspaceZoneQueriesReturn {
   results: AirspaceZoneQueryResult[];
-  refetchAll: () => void;
+  refreshStaleZones: () => void;
 }
 
 const fetchZoneGroup = async (typenames: string[]): Promise<VWorldFeatureCollection> => {
@@ -72,9 +74,17 @@ export const useAirspaceZoneQueries = (): UseAirspaceZoneQueriesReturn => {
       isLoading: result.isLoading,
       isError: result.isError,
     })),
-    // "공역 재조회" 버튼용: bounds 재계산 없이 전국(KOREA_BBOX) 쿼리를 그대로 다시 실행한다.
-    refetchAll: () => {
-      results.forEach((result) => {
+    // "공역 새로고침" 버튼용: staleTime(24시간)이 지난 그룹만 개별적으로 재패칭한다.
+    // 모두 신선하면 네트워크 요청 없이 안내 토스트만 띄운다 (이슈 #37, 모바일 데이터 절감).
+    refreshStaleZones: () => {
+      const staleResults = results.filter((result) => result.isStale);
+
+      if (staleResults.length === 0) {
+        message.info('최신 상태입니다.', INFO_TOAST_DURATION_SECONDS);
+        return;
+      }
+
+      staleResults.forEach((result) => {
         result.refetch();
       });
     },
