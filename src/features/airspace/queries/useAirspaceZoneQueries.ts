@@ -17,6 +17,11 @@ interface AirspaceZoneQueryResult {
   isError: boolean;
 }
 
+interface UseAirspaceZoneQueriesReturn {
+  results: AirspaceZoneQueryResult[];
+  refetchAll: () => void;
+}
+
 const fetchZoneGroup = async (typenames: string[]): Promise<VWorldFeatureCollection> => {
   const collections = await Promise.all(
     typenames.map(async (typename) => {
@@ -30,9 +35,8 @@ const fetchZoneGroup = async (typenames: string[]): Promise<VWorldFeatureCollect
   };
 };
 
-export const useAirspaceZoneQueries = (): AirspaceZoneQueryResult[] => {
+export const useAirspaceZoneQueries = (): UseAirspaceZoneQueriesReturn => {
   const { message } = AntdApp.useApp();
-  const toastedErrorAtRef = useRef<Partial<Record<AirspaceZoneConfig['level'], number>>>({});
 
   const results = useQueries({
     queries: AIRSPACE_ZONE_CONFIGS.map((config) => ({
@@ -42,6 +46,9 @@ export const useAirspaceZoneQueries = (): AirspaceZoneQueryResult[] => {
       refetchOnWindowFocus: false,
     })),
   });
+
+  // 구역(level)별로 같은 에러를 중복 토스트하지 않도록 마지막으로 안내한 에러 발생 시각을 기억한다.
+  const toastedErrorAtRef = useRef<Partial<Record<AirspaceZoneConfig['level'], number>>>({});
 
   useEffect(() => {
     results.forEach((result, index) => {
@@ -58,10 +65,18 @@ export const useAirspaceZoneQueries = (): AirspaceZoneQueryResult[] => {
     });
   });
 
-  return results.map((result, index) => ({
-    config: AIRSPACE_ZONE_CONFIGS[index],
-    data: result.data,
-    isLoading: result.isLoading,
-    isError: result.isError,
-  }));
+  return {
+    results: results.map((result, index) => ({
+      config: AIRSPACE_ZONE_CONFIGS[index],
+      data: result.data,
+      isLoading: result.isLoading,
+      isError: result.isError,
+    })),
+    // "공역 재조회" 버튼용: bounds 재계산 없이 전국(KOREA_BBOX) 쿼리를 그대로 다시 실행한다.
+    refetchAll: () => {
+      results.forEach((result) => {
+        result.refetch();
+      });
+    },
+  };
 };
