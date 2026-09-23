@@ -63,3 +63,26 @@
 - 판단: 안내 문구(정책)와 실제 구현(검증 로직) 중 하나가 어긋난 것으로 보인다 — ① 안내가 실제보다 엄격하게 쓰여 있거나, ② 원래 "Referer-등록 도메인 일치"를 검증하려던 로직이 "헤더 존재 여부"만 보는 얕은 체크로 구현된 결함일 가능성. 정확한 원인은 VWorld 측 확인 없이는 알 수 없다.
 - 결론: 지금 relay 구조(도메인별 키 분리 없이 키 하나 + relay 하나)는 이 느슨한 검증 덕에 동작하는 것이지, VWorld가 공식적으로 보장하는 동작은 아닐 수 있다. VWorld가 검증을 강화하면 깨질 수 있는 우연한 동작이라는 점을 유의하고, 그때는 도메인별 키 발급/분기를 다시 검토해야 한다.
 - 관련 이슈/PR: #16
+
+## 2026-09-23 12:38 — react-kakao-maps-sdk의 Map이 "현재위치로 이동" 버튼에 반응하지 않음
+
+- 증상: 지도의 "현재위치로 이동" 버튼(`setMapCenter(currentPosition)`으로 `KakaoMap`의 `center` prop을 갱신하는 방식)을 눌러도 지도가 움직이지 않는 경우가 있었다. 과거에도 다른 프로젝트에서 겪은 문제로, `{lat: 0, lng: 0}`을 임시로 거쳐 갱신하는 워크어라운드로 우회했었다.
+- 원인: 서브에이전트로 `node_modules/react-kakao-maps-sdk`(v1.2.2) 소스를 직접 읽어 확인. `Map` 컴포넌트는 다음과 같은 형태의 recenter `useEffect`를 갖는다.
+  ```js
+  useEffect(() => {
+    // ... 현재 map center와 비교 후 setCenter/panTo 호출
+  }, [mapInstance, center.lat, center.lng, center.x, center.y]);
+  ```
+  의존성 배열이 `center` **객체 참조**가 아니라 `lat`/`lng` **원시값**이다. 따라서 GPS 재조회 없이 이미 알고 있는 좌표를 그대로 `setMapCenter`에 넘기면(혹은 GPS로 다시 조회해도 우연히 같은 값이 나오면) `lat`/`lng` 값 자체가 이전과 동일해 effect가 재실행되지 않고, 지도는 움직이지 않는다. 과거 `{lat: 0, lng: 0}` 경유 워크어라운드가 통했던 이유도 이 값 비교 방식 때문 — 중간에 다른 값을 한 번 거치면 의존성이 확실히 바뀐다.
+- 해결/결론: 선언적 `center` prop의 값 비교에 기대지 않고, `Map`의 `onCreate` 콜백(SDK 타입 주석이 `ref`보다 `onCreate` + `useState` 조합을 권장)으로 실제 `kakao.maps.Map` 인스턴스를 확보한 뒤, 이동이 필요한 시점에 `mapInstance.panTo(new kakao.maps.LatLng(lat, lng))`를 명령형으로 직접 호출하도록 변경. 값이 같든 다르든 항상 확실하게 동작한다. `center` prop 자체는 최초 위치 조회 시 지도를 한 번 맞추는 용도로만 남겨뒀다.
+- 관련 이슈/PR: #36
+
+## 2026-09-23 12:49 — 브라우저 네트워크 탭의 "disk cache"는 TanStack Query 캐시가 아니라 별개의 HTTP 캐시
+
+- 증상/의문: 공역 데이터 재조회 관련 논의 중, 사용자가 브라우저 개발자도구 네트워크 탭에서 VWorld 요청이 "(disk cache)"로 표시되는 것을 보고 TanStack Query의 캐시가 디스크에 저장되는 방식이라고 오해함.
+- 원인: 캐시가 두 개의 독립된 레이어로 존재한다는 점을 명확히 구분하지 못해 생긴 오해였다.
+  1. TanStack Query 캐시 — JS 메모리(힙)에만 존재, `staleTime`/`gcTime`으로 앱 코드가 직접 제어, 탭 닫히거나 새로고침하면 소멸.
+  2. 브라우저 HTTP 캐시 — `Cache-Control`/`ETag`/`Last-Modified` 등 HTTP 응답 헤더 기반으로 브라우저가 자체 판단, 디스크에 저장될 수 있음.
+  - VWorld 릴레이 서버(`server/api/vworld-api/[...path].ts:40-43`)를 확인한 결과 VWorld 원본 응답의 `Content-Type`만 그대로 전달할 뿐 `Cache-Control`/`ETag`/`Last-Modified`는 전혀 설정하지 않는다. 즉 사용자가 본 "disk cache"는 relay가 의도한 캐싱이 아니라 크롬이 캐시 헤더 부재 시 자체적으로 적용하는 휴리스틱 캐싱일 뿐이며, 언제 히트할지 보장되지 않는다.
+- 해결/결론: 오해를 정정하고, 두 캐시 레이어를 명확히 구분해 안내함. 릴레이 서버에 명시적 `Cache-Control` 헤더를 추가해 브라우저 HTTP 캐시도 안정적으로 동작하게 하는 방안을 제안했으나, 사용자가 지금은 범위에서 제외하고 #37을 TanStack Query 캐싱만으로 진행하기로 결정. 향후 모바일 데이터 절감을 더 강화하려면 이 relay 헤더 추가를 별도로 재검토할 수 있다.
+- 관련 이슈/PR: #37 (구현 전, 설계 논의 단계)
