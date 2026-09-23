@@ -5,6 +5,7 @@ import { useEffect, useRef } from 'react';
 import { fetchAirspaceZones } from '@/features/airspace/api/fetchAirspaceZones';
 import { AIRSPACE_ZONE_CONFIGS, AIRSPACE_ZONE_LABELS } from '@/features/airspace/constants';
 import type { AirspaceZoneConfig, VWorldFeatureCollection } from '@/features/airspace/types';
+import { tagFeatureZoneType } from '@/features/airspace/utils/tagFeatureZoneType';
 
 const STALE_TIME_MS = 30 * 60 * 1000;
 const ERROR_TOAST_DURATION_SECONDS = 3;
@@ -17,10 +18,15 @@ interface AirspaceZoneQueryResult {
 }
 
 const fetchZoneGroup = async (typenames: string[]): Promise<VWorldFeatureCollection> => {
-  const collections = await Promise.all(typenames.map(fetchAirspaceZones));
+  const collections = await Promise.all(
+    typenames.map(async (typename) => {
+      const collection = await fetchAirspaceZones(typename);
+      return tagFeatureZoneType(collection.features, typename);
+    }),
+  );
   return {
     type: 'FeatureCollection',
-    features: collections.flatMap((collection) => collection.features),
+    features: collections.flat(),
   };
 };
 
