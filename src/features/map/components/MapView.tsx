@@ -1,17 +1,44 @@
-import { Spin } from 'antd';
-import { Map as KakaoMap, useKakaoLoader } from 'react-kakao-maps-sdk';
+import { App as AntdApp, Spin } from 'antd';
+import { useEffect, useRef, useState } from 'react';
+import { Map as KakaoMap, MapMarker, useKakaoLoader } from 'react-kakao-maps-sdk';
 
 import { AirspaceLegend } from '@/features/airspace/components/AirspaceLegend';
 import { AirspacePolygonLayer } from '@/features/airspace/components/AirspacePolygonLayer';
-import { useAirspaceZoneQueries } from '@/features/airspace/queries/useAirspaceZoneQueries';
+import { MapControls } from '@/features/map/components/MapControls';
 import { useCurrentCenter } from '@/features/map/hooks/useCurrentCenter';
+import { useAirspaceZoneQueries } from '@/features/airspace/queries/useAirspaceZoneQueries';
+
+import { DEFAULT_CENTER, DEFAULT_ZOOM_LEVEL } from '@/features/map/constants';
 
 export const MapView = () => {
+  // 카카오 SDK 스크립트 로딩 상태. 로딩/에러 시 지도 대신 안내 문구를 렌더링한다.
   const [loading, error] = useKakaoLoader({
     appkey: import.meta.env.VITE_KAKAO_MAP_API_KEY,
   });
-  const center = useCurrentCenter();
-  const airspaceZoneResults = useAirspaceZoneQueries();
+  const { message } = AntdApp.useApp();
+
+  // 현재위치 재조회는 마커 위치만 갱신하고 지도는 움직이지 않아야 하므로,
+  // 지도 이동 여부는 아래 mapCenter state로 별도 관리한다.
+  const {
+    position: currentPosition,
+    hasLocation,
+    hasResolvedInitial,
+    refetchLocation,
+  } = useCurrentCenter();
+
+  const { results: airspaceZoneResults, refetchAll: refetchPolygons } = useAirspaceZoneQueries();
+
+  const [mapCenter, setMapCenter] = useState(DEFAULT_CENTER);
+  // 최초 위치 조회가 끝난 시점에 한 번만 지도 중심을 맞추기 위한 플래그.
+  // (이후 "현재위치 재조회"로 currentPosition이 바뀌어도 지도가 따라 움직이지 않도록 함)
+  const hasSetInitialCenterRef = useRef(false);
+
+  useEffect(() => {
+    if (hasResolvedInitial && !hasSetInitialCenterRef.current) {
+      hasSetInitialCenterRef.current = true;
+      setMapCenter(currentPosition);
+    }
+  }, [hasResolvedInitial, currentPosition]);
 
   if (error) {
     return (
@@ -36,12 +63,25 @@ export const MapView = () => {
           <Spin />
         </div>
       )}
-      <KakaoMap center={center} level={5} style={{ width: '100%', height: '100%' }}>
+      <KakaoMap
+        center={mapCenter}
+        level={DEFAULT_ZOOM_LEVEL}
+        style={{ width: '100%', height: '100%' }}
+      >
         {airspaceZoneResults.map(({ config, data }) => (
           <AirspacePolygonLayer key={config.level} config={config} data={data} />
         ))}
+        {hasLocation && <MapMarker position={currentPosition} />}
       </KakaoMap>
       <AirspaceLegend />
+      <MapControls
+        onRefetchPolygons={refetchPolygons}
+        onRefetchLocation={() =>
+          refetchLocation(() => message.error('현재 위치를 가져오지 못했습니다.'))
+        }
+        onMoveToLocation={() => setMapCenter(currentPosition)}
+        canMoveToLocation={hasLocation}
+      />
     </div>
   );
 };

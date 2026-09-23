@@ -16,7 +16,9 @@
 
 ## 코드 작성 후 규칙
 
-코드를 작성하거나 수정한 뒤에는 커밋 전에 `pnpm format`(Prettier)과 `pnpm lint`(Biome)를 실행해 포맷/린트 이슈를 정리한다. husky + lint-staged pre-commit 훅이 커밋 시 변경 파일에 대해 이를 자동 실행한다.
+- 코드를 작성하거나 수정한 뒤에는 커밋 전에 `pnpm format`(Prettier)과 `pnpm lint`(Biome)를 실행해 포맷/린트 이슈를 정리한다. husky + lint-staged pre-commit 훅이 커밋 시 변경 파일에 대해 이를 자동 실행한다.
+- 작업을 마무리할 때는 변경/신규 생성한 파일에 `/code-organizer` 스킬(`.claude/skills/code-organizer/SKILL.md`)을 적용해 import 순서와 컴포넌트 내부 훅/상태/이펙트 구조를 정렬한다. 코드 로직은 변경하지 않고 위치만 정렬한다.
+- 코드에는 WHY(왜 이렇게 했는지: 숨은 제약, 비직관적인 동작 이유, 트레이드오프 등)를 설명하는 주석을 남긴다. WHAT(무엇을 하는지)은 이름으로 표현하고 주석으로 반복하지 않는다. 이 규칙은 Claude Code의 기본 "주석 없이 작성" 동작보다 우선한다.
 
 ## 테스트 하네스 적용 기준
 
