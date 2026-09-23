@@ -63,6 +63,17 @@ VWorld WFS API (EPSG:4326, GeoJSON)
   인터셉터처럼 외부 상태·환경에 의존하는 코드. 이런 코드는 `docs/spec/`(SDD 템플릿)으로
   먼저 스펙을 정리하고, 필요 시 사후에 통합/컴포넌트 테스트로 검증한다.
 
+## spec-kit 적용 기준
+
+이슈 #24, #31(spec-kit 트라이얼)에서 정의. 이슈 작업을 시작할 때 `issue-start` 스킬(`.claude/skills/issue-start/`)로 진입하며, 이 스킬이 아래 기준에 따라 두 시나리오 중 하나를 추천하고 사용자 확인을 받는다. 최종 판단은 항상 사용자가 내린다 — 아래는 추천 근거일 뿐 강제 규칙이 아니다.
+
+- **spec-kit 적용 추천**: 요구사항에 모호함이 있거나 데이터 소스/API 조사가 선행돼야 함(#24처럼) / 여러 User Story로 쪼갤 만큼 범위가 큼 / 그룹 분류·우선순위 등 사용자 판단이 필요한 분기점이 예상됨.
+  - `issue-start`가 이 경로를 추천하면 `speckit-start` 스킬(`.claude/skills/speckit-start/`)을 호출해 `/speckit-specify` → (필요 시 `/speckit-clarify`) → `/speckit-plan` → `/speckit-tasks` → `/speckit-implement`를 단계별로 진행하며, 각 단계 완료 후 다음 단계로 넘어가기 전 사용자 확인을 받는다.
+- **기존 방식(바로 구현) 추천**: 원인과 해결책이 이미 명확한 버그(#31처럼) / 1~2개 파일, 기존 패턴을 그대로 따르는 작업 / 조사할 거리가 없음.
+  - 이 경로에서는 spec-kit 없이 브랜치 생성 → 구현 → 테스트/포맷/린트 → (사용자 요청 시) 커밋/PR로 바로 진행한다.
+- 두 경로 모두 브랜치/`in-progress` 라벨 부여 등 [GitHub 이슈 관리](../CLAUDE.md#github-이슈-관리) 공통 규칙을 따르며, 커밋/PR/머지는 기존과 동일하게 사용자의 명시적 요청이 있을 때만 진행한다.
+- `issue-start`/`speckit-start` 두 스킬은 현재 이 프로젝트 전용(`.claude/skills/`)이다 — grill-me, spec-kit 의존성이 다른 프로젝트에는 없을 수 있어서다. 이 프로젝트에서 판단 기준과 스킬 동작을 다듬은 뒤 사용자 전역(`~/.claude/skills/`)으로 분리할 계획이다(트라이얼 단계, 계속 고도화 중).
+
 ## Kakao Maps SDK 모킹 전략
 
 `react-kakao-maps-sdk`의 `useKakaoLoader`는 실제로 `<script>` 태그를 주입해 Kakao SDK를
