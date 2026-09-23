@@ -11,12 +11,12 @@ import { useAirspaceZoneQueries } from '@/features/airspace/queries/useAirspaceZ
 import { DEFAULT_CENTER, DEFAULT_ZOOM_LEVEL } from '@/features/map/constants';
 
 export const MapView = () => {
+  const { message } = AntdApp.useApp();
+
   // 카카오 SDK 스크립트 로딩 상태. 로딩/에러 시 지도 대신 안내 문구를 렌더링한다.
   const [loading, error] = useKakaoLoader({
     appkey: import.meta.env.VITE_KAKAO_MAP_API_KEY,
   });
-  const { message } = AntdApp.useApp();
-
   // 현재위치 재조회는 마커 위치만 갱신하고 지도는 움직이지 않아야 하므로,
   // 지도 이동 여부는 아래 mapCenter state로 별도 관리한다.
   const {
@@ -26,7 +26,7 @@ export const MapView = () => {
     refetchLocation,
   } = useCurrentCenter();
 
-  const { results: airspaceZoneResults, refetchAll: refetchPolygons } = useAirspaceZoneQueries();
+  const { results: airspaceZoneResults, refreshStaleZones } = useAirspaceZoneQueries();
 
   const [mapCenter, setMapCenter] = useState(DEFAULT_CENTER);
   // "현재위치로 이동"은 kakaoMapInstance.panTo()로 명령형 호출한다. react-kakao-maps-sdk의
@@ -82,14 +82,14 @@ export const MapView = () => {
       </KakaoMap>
       <AirspaceLegend />
       <MapControls
-        onRefetchPolygons={refetchPolygons}
-        onRefetchLocation={() =>
-          refetchLocation(() => message.error('현재 위치를 가져오지 못했습니다.'))
+        onRefreshPolygons={refreshStaleZones}
+        onMoveToCurrentLocation={() =>
+          refetchLocation({
+            onSuccess: (position) =>
+              kakaoMapInstance?.panTo(new kakao.maps.LatLng(position.lat, position.lng)),
+            onError: () => message.error('현재 위치를 가져오지 못했습니다.'),
+          })
         }
-        onMoveToLocation={() =>
-          kakaoMapInstance?.panTo(new kakao.maps.LatLng(currentPosition.lat, currentPosition.lng))
-        }
-        canMoveToLocation={hasLocation}
       />
     </div>
   );
