@@ -29,6 +29,12 @@ export const MapView = () => {
   const { results: airspaceZoneResults, refetchAll: refetchPolygons } = useAirspaceZoneQueries();
 
   const [mapCenter, setMapCenter] = useState(DEFAULT_CENTER);
+  // "현재위치로 이동"은 kakaoMapInstance.panTo()로 명령형 호출한다. react-kakao-maps-sdk의
+  // Map은 center prop의 lat/lng 값이 실제로 바뀔 때만 지도를 움직이는 값 비교 방식이라,
+  // 이미 알고 있는 좌표를 그대로 넘기면(혹은 GPS 재조회 값이 우연히 같으면) 반응하지 않기 때문이다
+  // (이슈 #36). onCreate로 받은 인스턴스를 쓰는 이유는 SDK가 ref보다 이 방식을 권장해서다.
+  const [kakaoMapInstance, setKakaoMapInstance] = useState<kakao.maps.Map | null>(null);
+
   // 최초 위치 조회가 끝난 시점에 한 번만 지도 중심을 맞추기 위한 플래그.
   // (이후 "현재위치 재조회"로 currentPosition이 바뀌어도 지도가 따라 움직이지 않도록 함)
   const hasSetInitialCenterRef = useRef(false);
@@ -67,6 +73,7 @@ export const MapView = () => {
         center={mapCenter}
         level={DEFAULT_ZOOM_LEVEL}
         style={{ width: '100%', height: '100%' }}
+        onCreate={setKakaoMapInstance}
       >
         {airspaceZoneResults.map(({ config, data }) => (
           <AirspacePolygonLayer key={config.level} config={config} data={data} />
@@ -79,7 +86,9 @@ export const MapView = () => {
         onRefetchLocation={() =>
           refetchLocation(() => message.error('현재 위치를 가져오지 못했습니다.'))
         }
-        onMoveToLocation={() => setMapCenter(currentPosition)}
+        onMoveToLocation={() =>
+          kakaoMapInstance?.panTo(new kakao.maps.LatLng(currentPosition.lat, currentPosition.lng))
+        }
         canMoveToLocation={hasLocation}
       />
     </div>
