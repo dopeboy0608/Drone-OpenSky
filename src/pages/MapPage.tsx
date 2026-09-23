@@ -1,7 +1,7 @@
 import { MapView } from '@/features/map/components/MapView';
 
 export const MapPage = () => (
-  <div className="h-screen w-screen">
+  <div className="h-dvh w-dvw">
     <MapView />
   </div>
 );
