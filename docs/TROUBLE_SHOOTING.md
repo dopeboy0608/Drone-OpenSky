@@ -184,3 +184,10 @@
 - 원인: antd(rc-select)는 window의 `mousedown`으로 바깥 클릭을 감지해 닫는다. 지도 위 폴리곤 같은 요소는 mousedown 전파를 막고, 모바일 터치는 마우스 이벤트 없이 포인터/터치 이벤트만 발생해 antd가 바깥 누름을 못 받는다. 데스크톱에서 일반 지도 영역을 눌렀을 때는 닫혔고, 마우스 이벤트 없이 `pointerdown`만 보냈을 때 목록이 그대로 남는 것으로 재현했다.
 - 해결/결론: `AddressSearch`가 열림 상태를 직접 제어(`open`/`onOpenChange`)하고, 열려 있는 동안 `document`의 `pointerdown`을 캡처 단계에서 듣다가 검색 영역 밖이면 닫는다(캡처 단계라 하위 요소가 전파를 막아도 먼저 받는다). 후보를 누르는 동작이 "바깥"으로 판정되지 않도록 드롭다운은 `getPopupContainer`로 검색 영역 안에 렌더한다. 다시 입력하면 목록이 다시 열린다.
 - 관련 이슈/PR: #26
+
+## 2026-11-08 11:17 — 카카오맵 위에 VWorld WMS 타일 올리기 (Tileset 좌표계, WMS 키 권한)
+
+- 증상: 카카오 `Tileset` 등록 시 `reading 'ad'` 오류, 타일 좌표를 BBOX로 바꾸는 방법 불명, WMS 호출이 `INVALID_KEY`.
+- 원인: `errorTileUrl`이 빈 문자열이라 SDK 내부 오류. 카카오 타일 격자는 Web Mercator가 아니라 WCONGNAMUL 좌표의 선형 격자이고(`size=80·2^z`, 원점 X -75000 / Y -150000), 숫자가 EPSG:5181과 달라 5181 직접 요청은 투명 타일. `INVALID_KEY`는 키에 WMS 서비스 권한이 없어서(Referer 부재로 인한 `INCORRECT_KEY`와 구분).
+- 해결/결론: `errorTileUrl`에 유효 URL 지정, 네 모서리를 `Coords.toLatLng()`로 위경도→3857로 바꾼 외접 BBOX로 WMS 요청해 정렬 성공. WMS 권한 추가 후 동작. 줌이 클수록 오차 증가, 프로덕션 relay는 `text()`로 응답을 읽어 PNG가 깨질 가능성(미검증).
+- 관련 이슈/PR: #28, #69 (Notion 노트: https://app.notion.com/p/41272a17ef69810e9adae99b47560313)
