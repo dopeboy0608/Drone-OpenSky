@@ -1,11 +1,13 @@
 import { create } from 'zustand';
 
-import { TYPENAME_ZONE_LABELS } from '@/features/airspace/constants';
+import { AIRSPACE_ZONE_CONFIGS, TYPENAME_ZONE_LABELS } from '@/features/airspace/constants';
+import type { AirspaceZoneLevel } from '@/features/airspace/types';
 
 interface AirspaceFilterState {
   visibility: Record<string, boolean>;
   toggleZone: (typename: string) => void;
   setAllZones: (isVisible: boolean) => void;
+  setGroupZones: (level: AirspaceZoneLevel, isVisible: boolean) => void;
 }
 
 export const createInitialVisibility = (): Record<string, boolean> =>
@@ -28,4 +30,18 @@ export const useAirspaceFilterStore = create<AirspaceFilterState>((set) => ({
         Object.keys(state.visibility).map((typename) => [typename, isVisible]),
       ),
     })),
+  setGroupZones: (level, isVisible) =>
+    set((state) => {
+      const config = AIRSPACE_ZONE_CONFIGS.find((zoneConfig) => zoneConfig.level === level);
+      // 알 수 없는 level은 무시한다. 새 객체를 만들면 구독 중인 지도 필터가 불필요하게 다시 계산된다.
+      if (!config) {
+        return state;
+      }
+      return {
+        visibility: {
+          ...state.visibility,
+          ...Object.fromEntries(config.typenames.map((typename) => [typename, isVisible])),
+        },
+      };
+    }),
 }));
