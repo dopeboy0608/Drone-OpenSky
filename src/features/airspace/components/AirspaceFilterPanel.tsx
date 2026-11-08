@@ -3,6 +3,7 @@ import { Button, Card, Checkbox, ConfigProvider } from 'antd';
 import { useState } from 'react';
 
 import { useAirspaceFilterStore } from '@/features/airspace/store/airspaceFilterStore';
+import { getGroupCheckState } from '@/features/airspace/utils/getGroupCheckState';
 
 import {
   AIRSPACE_ZONE_CONFIGS,
@@ -16,6 +17,7 @@ export const AirspaceFilterPanel = () => {
   const visibility = useAirspaceFilterStore((state) => state.visibility);
   const toggleZone = useAirspaceFilterStore((state) => state.toggleZone);
   const setAllZones = useAirspaceFilterStore((state) => state.setAllZones);
+  const setGroupZones = useAirspaceFilterStore((state) => state.setGroupZones);
 
   const [isOpen, setIsOpen] = useState(false);
 
@@ -38,28 +40,39 @@ export const AirspaceFilterPanel = () => {
             }
             className="max-h-[60dvh] overflow-y-auto shadow"
           >
-            {AIRSPACE_ZONE_CONFIGS.map((config) => (
-              <div key={config.level} className="py-1">
-                <div className="flex items-center gap-2 text-[13px] font-medium">
-                  <span
-                    className="inline-block h-3 w-3 rounded-sm"
-                    style={{ backgroundColor: config.color }}
-                  />
-                  <span>{AIRSPACE_ZONE_LABELS[config.level]}</span>
+            {AIRSPACE_ZONE_CONFIGS.map((config) => {
+              const groupState = getGroupCheckState(config.typenames, visibility);
+
+              return (
+                <div key={config.level} className="py-1">
+                  {/* 일부만 켜진 그룹을 누르면 켜는 쪽으로 동작한다(antd 전체 선택 관례). */}
+                  <Checkbox
+                    checked={groupState === 'all'}
+                    indeterminate={groupState === 'some'}
+                    onChange={() => setGroupZones(config.level, groupState !== 'all')}
+                  >
+                    <span className="flex items-center gap-2 font-medium">
+                      <span
+                        className="inline-block h-3 w-3 rounded-sm"
+                        style={{ backgroundColor: config.color }}
+                      />
+                      <span>{AIRSPACE_ZONE_LABELS[config.level]}</span>
+                    </span>
+                  </Checkbox>
+                  <div className="flex flex-col pl-5">
+                    {config.typenames.map((typename) => (
+                      <Checkbox
+                        key={typename}
+                        checked={visibility[typename]}
+                        onChange={() => toggleZone(typename)}
+                      >
+                        {TYPENAME_ZONE_LABELS[typename]}
+                      </Checkbox>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex flex-col pl-5">
-                  {config.typenames.map((typename) => (
-                    <Checkbox
-                      key={typename}
-                      checked={visibility[typename]}
-                      onChange={() => toggleZone(typename)}
-                    >
-                      {TYPENAME_ZONE_LABELS[typename]}
-                    </Checkbox>
-                  ))}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </Card>
         )}
         <Button icon={<UnorderedListOutlined />} onClick={() => setIsOpen((open) => !open)}>

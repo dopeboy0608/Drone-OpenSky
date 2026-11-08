@@ -52,6 +52,41 @@ describe('airspaceFilterStore', () => {
     expect(Object.values(visibility).every((isVisible) => !isVisible)).toBe(true);
   });
 
+  it('setGroupZones(level, false)는 해당 그룹만 끄고 다른 그룹은 유지한다', () => {
+    useAirspaceFilterStore.getState().setGroupZones('prohibited', false);
+
+    const { visibility } = useAirspaceFilterStore.getState();
+    expect(visibility.lt_c_aisprhc).toBe(false);
+    expect(visibility.lt_c_aistemp).toBe(false);
+    expect(visibility.lt_c_aisdngc).toBe(false);
+    expect(visibility.lt_c_aisctrc).toBe(true);
+    expect(visibility.lt_c_aisuac).toBe(true);
+  });
+
+  it('setGroupZones(level, true)는 일부만 꺼진 그룹을 모두 켠다', () => {
+    useAirspaceFilterStore.getState().toggleZone('lt_c_aisctrc');
+
+    useAirspaceFilterStore.getState().setGroupZones('restricted', true);
+
+    expect(useAirspaceFilterStore.getState().visibility.lt_c_aisctrc).toBe(true);
+  });
+
+  it('setGroupZones는 키 집합을 유지한다', () => {
+    useAirspaceFilterStore.getState().setGroupZones('available', false);
+
+    expect(Object.keys(useAirspaceFilterStore.getState().visibility).sort()).toEqual(
+      Object.keys(TYPENAME_ZONE_LABELS).sort(),
+    );
+  });
+
+  it('setGroupZones는 알 수 없는 level이면 상태를 바꾸지 않는다', () => {
+    const before = useAirspaceFilterStore.getState().visibility;
+
+    useAirspaceFilterStore.getState().setGroupZones('unknown' as never, false);
+
+    expect(useAirspaceFilterStore.getState().visibility).toBe(before);
+  });
+
   it('setAllZones(true)는 모든 typename을 켠다', () => {
     useAirspaceFilterStore.getState().setAllZones(false);
 
