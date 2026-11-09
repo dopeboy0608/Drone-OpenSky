@@ -7,10 +7,10 @@ import { writeZoneCache } from '@/features/airspace/cache/airspaceCacheStore';
 import { AIRSPACE_ZONE_CONFIGS, AIRSPACE_ZONE_LABELS } from '@/features/airspace/constants';
 import { getAirspaceZoneQueryKey } from '@/features/airspace/queries/airspaceZoneQueryKey';
 import type { AirspaceZoneConfig, VWorldFeatureCollection } from '@/features/airspace/types';
+import { resolveStaleTimeMs } from '@/features/airspace/utils/resolveStaleTimeMs';
 import { tagFeatureZoneType } from '@/features/airspace/utils/tagFeatureZoneType';
 
-// 전국 공역 데이터(~50MB)를 그룹당 하루 한 번 이상 재다운로드하지 않도록 staleTime을 넉넉히 잡는다 (이슈 #37).
-const STALE_TIME_MS = 24 * 60 * 60 * 1000;
+const STALE_TIME_MS = resolveStaleTimeMs(import.meta.env.VITE_AIRSPACE_STALE_TIME_MS);
 const ERROR_TOAST_DURATION_SECONDS = 3;
 const INFO_TOAST_DURATION_SECONDS = 2;
 
