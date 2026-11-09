@@ -68,9 +68,51 @@ class MockGeocoder {
   }
 }
 
+// 실제 SDK의 Coords는 WCONGNAMUL 좌표다. 테스트에서는 값이 눈에 보이도록 단순 선형 변환으로 흉내낸다
+// (lat = 37 + y / 1e6, lng = 127 + x / 1e6, 한국 인근 유효 범위에 머물게 하기 위함). 정확한 투영이 아니라 호출 경로와 모서리 조합을 검증하기 위한 것이다.
+class MockCoords {
+  constructor(
+    private readonly x: number,
+    private readonly y: number,
+  ) {}
+
+  toLatLng() {
+    return new MockLatLng(37 + this.y / 1e6, 127 + this.x / 1e6);
+  }
+}
+
+// 실제 SDK는 같은 이름으로 Tileset.add를 다시 호출하면 문제가 되므로(StrictMode 재마운트 방지 검증용)
+// 목도 중복 등록을 에러로 만든다. 등록하면 kakao.maps.MapTypeId[이름]이 생기는 동작도 흉내낸다.
+export const kakaoTilesetMock = {
+  registered: new Map<string, unknown>(),
+  reset() {
+    this.registered.clear();
+    for (const key of Object.keys(mockMapTypeId)) {
+      delete mockMapTypeId[key];
+    }
+  },
+};
+
+const mockMapTypeId: Record<string, string> = {};
+
+class MockTileset {
+  constructor(public readonly options: unknown) {}
+
+  static add(name: string, tileset: MockTileset) {
+    if (kakaoTilesetMock.registered.has(name)) {
+      throw new Error(`Tileset '${name}' is already registered`);
+    }
+    kakaoTilesetMock.registered.set(name, tileset);
+    mockMapTypeId[name] = name;
+  }
+}
+
 const mockKakao = {
   maps: {
     LatLng: MockLatLng,
+    Coords: MockCoords,
+    Tileset: MockTileset,
+    MapTypeId: mockMapTypeId,
     services: {
       Places: MockPlaces,
       Geocoder: MockGeocoder,
@@ -85,5 +127,6 @@ export const installKakaoMapsMock = () => {
 
 export const uninstallKakaoMapsMock = () => {
   kakaoServicesMock.reset();
+  kakaoTilesetMock.reset();
   delete (globalThis as unknown as Record<string, unknown>).kakao;
 };
