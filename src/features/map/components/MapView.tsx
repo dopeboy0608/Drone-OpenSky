@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Map as KakaoMap, MapMarker, useKakaoLoader } from 'react-kakao-maps-sdk';
 
 import { AirspaceFilterPanel } from '@/features/airspace/components/AirspaceFilterPanel';
+import { AirspaceRenderModeMenu } from '@/features/airspace/components/AirspaceRenderModeMenu';
 import { AirspaceLegend } from '@/features/airspace/components/AirspaceLegend';
 import { AirspacePolygonLayer } from '@/features/airspace/components/AirspacePolygonLayer';
 import { AirspaceZoneOverlay } from '@/features/airspace/components/AirspaceZoneOverlay';
@@ -13,9 +14,13 @@ import { useCurrentCenter } from '@/features/map/hooks/useCurrentCenter';
 import { useMapMarker } from '@/features/map/hooks/useMapMarker';
 import { useAirspaceZoneQueries } from '@/features/airspace/queries/useAirspaceZoneQueries';
 import { useAirspaceFilterStore } from '@/features/airspace/store/airspaceFilterStore';
+import { useAirspaceRenderModeStore } from '@/features/airspace/store/airspaceRenderModeStore';
 import { getVisibleZoneTypes } from '@/features/airspace/utils/getVisibleZoneTypes';
 
 import { DEFAULT_CENTER, DEFAULT_ZOOM_LEVEL } from '@/features/map/constants';
+
+// 참조가 고정된 빈 Set. 렌더마다 새로 만들면 레이어/선택 해제 이펙트가 매번 다시 돈다.
+const NO_VISIBLE_ZONE_TYPES: ReadonlySet<string> = new Set();
 
 export const MapView = () => {
   const { message } = AntdApp.useApp();
@@ -43,10 +48,14 @@ export const MapView = () => {
   const { results: airspaceZoneResults, refreshStaleZones } = useAirspaceZoneQueries();
 
   const airspaceVisibility = useAirspaceFilterStore((state) => state.visibility);
-  const visibleZoneTypes = useMemo(
+  const renderMode = useAirspaceRenderModeStore((state) => state.renderMode);
+  const filteredZoneTypes = useMemo(
     () => getVisibleZoneTypes(airspaceVisibility),
     [airspaceVisibility],
   );
+  // WMS 모드의 숨김은 언마운트가 아니라 가시성 전환으로 한다. 폴리곤 복귀 시 Polygon 재생성 비용을
+  // 피하기 위함이다(#47). 빈 Set은 useSelectedZone에도 전달돼 열려 있던 안내 오버레이도 닫힌다.
+  const visibleZoneTypes = renderMode === 'wms' ? NO_VISIBLE_ZONE_TYPES : filteredZoneTypes;
   const { selectedZone, selectZone, clearZone } = useSelectedZone(visibleZoneTypes);
 
   const [mapCenter, setMapCenter] = useState(DEFAULT_CENTER);
@@ -138,7 +147,9 @@ export const MapView = () => {
             onError: () => message.error('현재 위치를 가져오지 못했습니다.'),
           })
         }
-      />
+      >
+        <AirspaceRenderModeMenu />
+      </MapControls>
     </div>
   );
 };
