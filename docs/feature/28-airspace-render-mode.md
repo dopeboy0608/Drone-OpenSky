@@ -66,4 +66,5 @@
 
 - 구현: `getVisibleTypenames`(TDD), `AirspaceWmsLayer`가 필터 스토어를 구독해 `LAYERS`를 구성하고 필터 변경 시 오버레이를 뗐다 붙임, `useAirspaceZoneQueries({ enabled })`와 `MapView` 연결. 테스트 190개 통과.
 - 결정: 새로고침 버튼은 WMS 모드에서 조회 없이 안내만 한다(타일 재요청은 범위 밖). 전부 꺼지면 오버레이를 붙이지 않는다.
+- 후속 수정: VWorld WMS \`LAYERS\` 최대 4개 제한(\`INVALID_RANGE\`)으로 12종 단일 요청이 전부 실패 → 4개씩 슬롯 3개로 분할(\`chunkTypenames\`). 상세는 TROUBLE_SHOOTING.md.
 - 미검증(브라우저): 필터 변경 시 오버레이 재부착이 실제로 타일을 다시 받는지, 브라우저 캐시/타일 캐시가 이전 LAYERS 타일을 쓰지 않는지.
