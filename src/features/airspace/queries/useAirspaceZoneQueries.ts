@@ -4,7 +4,11 @@ import { useEffect, useRef } from 'react';
 
 import { fetchAirspaceZones } from '@/features/airspace/api/fetchAirspaceZones';
 import { writeZoneCache } from '@/features/airspace/cache/airspaceCacheStore';
-import { AIRSPACE_ZONE_CONFIGS, AIRSPACE_ZONE_LABELS } from '@/features/airspace/constants';
+import {
+  AIRSPACE_CACHE_ENABLED,
+  AIRSPACE_ZONE_CONFIGS,
+  AIRSPACE_ZONE_LABELS,
+} from '@/features/airspace/constants';
 import { getAirspaceZoneQueryKey } from '@/features/airspace/queries/airspaceZoneQueryKey';
 import { useAirspaceCacheSettingStore } from '@/features/airspace/store/airspaceCacheSettingStore';
 import type { AirspaceZoneConfig, VWorldFeatureCollection } from '@/features/airspace/types';
