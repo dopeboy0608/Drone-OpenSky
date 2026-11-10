@@ -10,6 +10,7 @@ import { AirspacePolygonLayer } from '@/features/airspace/components/AirspacePol
 import { AirspaceWmsLayer } from '@/features/airspace/components/AirspaceWmsLayer';
 import { AirspaceZoneOverlay } from '@/features/airspace/components/AirspaceZoneOverlay';
 import { useSelectedZone } from '@/features/airspace/hooks/useSelectedZone';
+import { useWmsZoneClick } from '@/features/airspace/hooks/useWmsZoneClick';
 import { AddressSearch } from '@/features/map/components/AddressSearch';
 import { MapControls } from '@/features/map/components/MapControls';
 import { useCurrentCenter } from '@/features/map/hooks/useCurrentCenter';
@@ -17,6 +18,7 @@ import { useMapMarker } from '@/features/map/hooks/useMapMarker';
 import { useAirspaceZoneQueries } from '@/features/airspace/queries/useAirspaceZoneQueries';
 import { useAirspaceFilterStore } from '@/features/airspace/store/airspaceFilterStore';
 import { useAirspaceRenderModeStore } from '@/features/airspace/store/airspaceRenderModeStore';
+import { getVisibleTypenames } from '@/features/airspace/utils/getVisibleTypenames';
 import { getVisibleZoneTypes } from '@/features/airspace/utils/getVisibleZoneTypes';
 
 import { DEFAULT_CENTER, DEFAULT_ZOOM_LEVEL } from '@/features/map/constants';
@@ -59,9 +61,28 @@ export const MapView = () => {
     [airspaceVisibility],
   );
   // WMS 모드의 숨김은 언마운트가 아니라 가시성 전환으로 한다. 폴리곤 복귀 시 Polygon 재생성 비용을
-  // 피하기 위함이다(#47). 빈 Set은 useSelectedZone에도 전달돼 열려 있던 안내 오버레이도 닫힌다.
+  // 피하기 위함이다(#47).
   const visibleZoneTypes = renderMode === 'wms' ? NO_VISIBLE_ZONE_TYPES : filteredZoneTypes;
-  const { selectedZone, selectZone, clearZone } = useSelectedZone(visibleZoneTypes);
+  // 안내 박스의 자동 닫힘 기준은 폴리곤 숨김과 분리한다. WMS 모드에서도 클릭 안내(#75)가 열려야 하므로
+  // 모드와 무관하게 범례 필터 기준(꺼진 종류만 닫힘)을 쓴다.
+  const { selectedZone, selectZone, clearZone } = useSelectedZone(filteredZoneTypes);
+  const visibleTypenames = useMemo(
+    () => getVisibleTypenames(airspaceVisibility),
+    [airspaceVisibility],
+  );
+  const handleWmsMapClick = useWmsZoneClick({
+    enabled: renderMode === 'wms',
+    typenames: visibleTypenames,
+    selectZone,
+    clearZone,
+  });
+
+  // 모드를 바꾸면 이전 모드에서 열린 안내는 의미가 없어 닫는다(예전에는 빈 Set 전달로 닫혔다).
+  // renderMode는 값이 아니라 "바뀐 시점"을 알리는 트리거로만 쓴다.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: renderMode 변경 자체가 실행 조건이다.
+  useEffect(() => {
+    clearZone();
+  }, [renderMode, clearZone]);
 
   const [mapCenter, setMapCenter] = useState(DEFAULT_CENTER);
   // "현재위치로 이동"은 kakaoMapInstance.panTo()로 명령형 호출한다. react-kakao-maps-sdk의
@@ -110,6 +131,12 @@ export const MapView = () => {
         level={DEFAULT_ZOOM_LEVEL}
         style={{ width: '100%', height: '100%' }}
         onCreate={setKakaoMapInstance}
+        onClick={(_map, mouseEvent) =>
+          handleWmsMapClick({
+            lat: mouseEvent.latLng.getLat(),
+            lng: mouseEvent.latLng.getLng(),
+          })
+        }
       >
         {airspaceZoneResults.map(({ config, data }) => (
           <AirspacePolygonLayer
