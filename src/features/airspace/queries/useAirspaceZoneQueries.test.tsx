@@ -1,5 +1,5 @@
 import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { renderHook, screen, waitFor } from '@testing-library/react';
+import { act, renderHook, screen, waitFor } from '@testing-library/react';
 import { App as AntdApp } from 'antd';
 import { IDBFactory } from 'fake-indexeddb';
 import { http, HttpResponse } from 'msw';
@@ -10,6 +10,12 @@ import { readZoneCache, writeZoneCache } from '@/features/airspace/cache/airspac
 import { hydrateAirspaceCache } from '@/features/airspace/cache/hydrateAirspaceCache';
 import { useAirspaceZoneQueries } from '@/features/airspace/queries/useAirspaceZoneQueries';
 import { server } from '@/test/mocks/server';
+
+// 캐시 비활성(기본값) 상태에서도 캐시 동작을 검증할 수 있도록 이 파일에서만 플래그를 켠다.
+vi.mock('@/features/airspace/constants', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/airspace/constants')>()),
+  AIRSPACE_CACHE_ENABLED: true,
+}));
 
 const WFS_URL = 'https://server-eosin-five-92.vercel.app/api/vworld-api/wfs';
 const HOUR_MS = 60 * 60 * 1000;
@@ -128,6 +134,31 @@ describe('useAirspaceZoneQueries + IndexedDB 캐시', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
 
       expect(getRequestCount()).toBe(0);
+    });
+  });
+
+  describe('새로고침 버튼 안내', () => {
+    it('모두 최신이면 요청 없이 마지막 갱신 시각과 함께 안내한다', async () => {
+      let requestCount = 0;
+      server.use(
+        http.get(WFS_URL, () => {
+          requestCount += 1;
+          return HttpResponse.json({ type: 'FeatureCollection', features: [] });
+        }),
+      );
+      const savedAt = new Date(2026, 10, 10, 14, 5).getTime();
+      vi.useFakeTimers({ toFake: ['Date'], now: savedAt + HOUR_MS });
+      for (const level of ['prohibited', 'restricted', 'available'] as const) {
+        await writeZoneCache(level, makeFeatureCollection(), savedAt);
+      }
+      const queryClient = new QueryClient();
+      await hydrateAirspaceCache(queryClient);
+      const { result } = renderQueries(queryClient);
+
+      act(() => result.current.refreshStaleZones());
+
+      expect(await screen.findByText('최신 상태입니다. (마지막 갱신: 14:05)')).toBeDefined();
+      expect(requestCount).toBe(0);
     });
   });
 
