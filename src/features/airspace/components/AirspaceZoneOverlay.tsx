@@ -15,10 +15,14 @@ export const AirspaceZoneOverlay = ({ position, zoneType, onClose }: AirspaceZon
   const { token } = theme.useToken();
 
   return (
-    // yAnchor 1은 컨텐츠 맨 아래(꼬리 끝)를 클릭 좌표에 맞춘다. 꼬리 없이 1.4로 띄우면 어디를 눌렀는지 알 수 없었다.
-    <CustomOverlayMap position={position} yAnchor={1} zIndex={10}>
+    // 앵커를 0,0으로 두고 위치 보정은 아래 래퍼의 CSS translate로 한다. 카카오의 xAnchor/yAnchor는 오버레이를
+    // 붙이는 시점에 잰 크기로 오프셋을 계산하는데, 내용이 나중에 레이아웃되면(예: WMS 모드처럼 조회 응답 뒤에
+    // 비동기로 열릴 때) 너비가 달라져 꼬리가 클릭 지점에서 한쪽으로 밀렸다. CSS translate의 퍼센트는 렌더된
+    // 자기 크기를 기준으로 하므로 타이밍과 무관하게 꼬리 끝이 클릭 좌표에 맞는다. 꼬리 없이 위로 띄우면
+    // 어디를 눌렀는지 알 수 없었다.
+    <CustomOverlayMap position={position} xAnchor={0} yAnchor={0} zIndex={10}>
       {/* Card의 box-shadow는 꼬리를 따라가지 못해 이음새에서 끊기므로, 카드와 꼬리를 한 덩어리로 감싼 래퍼에 drop-shadow를 준다(지도 색과 구분). */}
-      <div className="flex flex-col items-center drop-shadow-[0_2px_6px_rgba(0,0,0,0.3)]">
+      <div className="flex -translate-x-1/2 -translate-y-full flex-col items-center drop-shadow-[0_2px_6px_rgba(0,0,0,0.3)]">
         <Card
           size="small"
           title={zoneType}
