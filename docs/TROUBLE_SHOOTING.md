@@ -191,3 +191,10 @@
 - 원인: `errorTileUrl`이 빈 문자열이라 SDK 내부 오류. 카카오 타일 격자는 Web Mercator가 아니라 WCONGNAMUL 좌표의 선형 격자이고(`size=80·2^z`, 원점 X -75000 / Y -150000), 숫자가 EPSG:5181과 달라 5181 직접 요청은 투명 타일. `INVALID_KEY`는 키에 WMS 서비스 권한이 없어서(Referer 부재로 인한 `INCORRECT_KEY`와 구분).
 - 해결/결론: `errorTileUrl`에 유효 URL 지정, 네 모서리를 `Coords.toLatLng()`로 위경도→3857로 바꾼 외접 BBOX로 WMS 요청해 정렬 성공. WMS 권한 추가 후 동작. 줌이 클수록 오차 증가, 프로덕션 relay는 `text()`로 응답을 읽어 PNG가 깨질 가능성(미검증).
 - 관련 이슈/PR: #28, #69 (Notion 노트: https://app.notion.com/p/41272a17ef69810e9adae99b47560313)
+
+## 2026-11-09 23:32 — #68 폴리곤이 갱신되지 않는 현상
+
+- 증상: 지도 폴리곤을 다시 조회하지 않는 것처럼 보임. 24시간 만료라 직접 확인하기 어려움.
+- 원인: 마운트 시 만료 재조회는 코드·기존 테스트상 정상이라 재현 실패. 후보 2개: (1) `refetchOnWindowFocus: false`에 interval도 없어, 열어둔 탭은 마운트나 "공역 새로고침" 버튼 외에 갱신 경로가 없음 (2) 그룹 내 typename 하나라도 실패하면 `Promise.all`이 실패해 그룹 전체가 저장되지 않아 `savedAt`이 갱신되지 않음.
+- 해결/결론: staleTime을 `VITE_AIRSPACE_STALE_TIME_MS`로 덮어써 1~3분으로 줄여 브라우저에서 재현해 본 뒤, 결과에 따라 후보 1(자동 갱신, #37의 데이터 절감과 충돌)·후보 2(`allSettled`) 중 고른다.
+- 관련 이슈/PR: #68
