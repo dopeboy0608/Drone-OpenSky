@@ -4,12 +4,9 @@ import { useEffect, useRef } from 'react';
 
 import { fetchAirspaceZones } from '@/features/airspace/api/fetchAirspaceZones';
 import { writeZoneCache } from '@/features/airspace/cache/airspaceCacheStore';
-import {
-  AIRSPACE_CACHE_ENABLED,
-  AIRSPACE_ZONE_CONFIGS,
-  AIRSPACE_ZONE_LABELS,
-} from '@/features/airspace/constants';
+import { AIRSPACE_ZONE_CONFIGS, AIRSPACE_ZONE_LABELS } from '@/features/airspace/constants';
 import { getAirspaceZoneQueryKey } from '@/features/airspace/queries/airspaceZoneQueryKey';
+import { useAirspaceCacheSettingStore } from '@/features/airspace/store/airspaceCacheSettingStore';
 import type { AirspaceZoneConfig, VWorldFeatureCollection } from '@/features/airspace/types';
 import { formatLastUpdated } from '@/features/airspace/utils/formatLastUpdated';
 import { resolveStaleTimeMs } from '@/features/airspace/utils/resolveStaleTimeMs';
@@ -46,6 +43,8 @@ const fetchZoneGroup = async (typenames: string[]): Promise<VWorldFeatureCollect
 
 export const useAirspaceZoneQueries = (): UseAirspaceZoneQueriesReturn => {
   const { message } = AntdApp.useApp();
+  // 구독해 두면 설정을 바꾸는 즉시 아래 쿼리 옵션이 갱신된다(재시작 불필요).
+  const isCacheEnabled = useAirspaceCacheSettingStore((state) => state.enabled);
 
   const results = useQueries({
     queries: AIRSPACE_ZONE_CONFIGS.map((config) => ({
@@ -54,17 +53,17 @@ export const useAirspaceZoneQueries = (): UseAirspaceZoneQueriesReturn => {
         const data = await fetchZoneGroup(config.typenames);
         // 저장은 다음 로드를 위한 부가 작업이라 기다리지 않는다(실패해도 writeZoneCache가 삼킨다).
         // 조회가 실패하면 여기까지 오지 않으므로 기존 캐시(만료 포함)가 그대로 남는다.
-        if (AIRSPACE_CACHE_ENABLED) {
+        if (isCacheEnabled) {
           void writeZoneCache(config.level, data);
         }
         return data;
       },
       // 캐시를 끄면 세션 동안 다시 받을 이유가 없어(수동 새로고침만 허용) 만료되지 않게 둔다. 0으로 두면 포커스마다 전국 데이터를 받는다.
-      staleTime: AIRSPACE_CACHE_ENABLED ? STALE_TIME_MS : Infinity,
+      staleTime: isCacheEnabled ? STALE_TIME_MS : Infinity,
       // 포커스 복귀 재조회는 staleTime이 지난 그룹만 대상이라, 신선한 캐시를 쓰는 동안은 요청이 늘지 않는다 (이슈 #68, #37).
-      refetchOnWindowFocus: AIRSPACE_CACHE_ENABLED,
+      refetchOnWindowFocus: isCacheEnabled,
       // 포커스 이벤트 없이 탭을 계속 보고 있어도 만료 주기마다 갱신한다. 백그라운드 탭에서는 멈춰 모바일 데이터를 아낀다.
-      refetchInterval: AIRSPACE_CACHE_ENABLED ? STALE_TIME_MS : false,
+      refetchInterval: isCacheEnabled ? STALE_TIME_MS : false,
       refetchIntervalInBackground: false,
     })),
   });
@@ -98,7 +97,7 @@ export const useAirspaceZoneQueries = (): UseAirspaceZoneQueriesReturn => {
     // 캐시를 켠 동안은 staleTime(24시간)이 지난 그룹만 개별적으로 재패칭하고, 모두 신선하면 네트워크 요청 없이
     // 안내 토스트만 띄운다 (이슈 #37, 모바일 데이터 절감). 이때 마지막 갱신 시각을 알려 눌러도 변화가 없는 이유를 보여 준다.
     refreshStaleZones: () => {
-      if (!AIRSPACE_CACHE_ENABLED) {
+      if (!isCacheEnabled) {
         results.forEach((result) => {
           result.refetch();
         });
