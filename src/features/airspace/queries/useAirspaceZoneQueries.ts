@@ -15,12 +15,18 @@ import { tagFeatureZoneType } from '@/features/airspace/utils/tagFeatureZoneType
 const STALE_TIME_MS = resolveStaleTimeMs(import.meta.env.VITE_AIRSPACE_STALE_TIME_MS);
 const ERROR_TOAST_DURATION_SECONDS = 3;
 const INFO_TOAST_DURATION_SECONDS = 2;
+const WMS_REFRESH_MESSAGE = 'WMS 모드에서는 타일을 자동으로 불러옵니다.';
 
 interface AirspaceZoneQueryResult {
   config: AirspaceZoneConfig;
   data: VWorldFeatureCollection | undefined;
   isLoading: boolean;
   isError: boolean;
+}
+
+interface UseAirspaceZoneQueriesOptions {
+  // false면 조회하지 않는다(WMS 모드). 전국 폴리곤은 약 50MB라 쓰지 않는 모드에서는 받지 않는다.
+  enabled?: boolean;
 }
 
 interface UseAirspaceZoneQueriesReturn {
@@ -41,7 +47,9 @@ const fetchZoneGroup = async (typenames: string[]): Promise<VWorldFeatureCollect
   };
 };
 
-export const useAirspaceZoneQueries = (): UseAirspaceZoneQueriesReturn => {
+export const useAirspaceZoneQueries = ({
+  enabled = true,
+}: UseAirspaceZoneQueriesOptions = {}): UseAirspaceZoneQueriesReturn => {
   const { message } = AntdApp.useApp();
   // 구독해 두면 설정을 바꾸는 즉시 아래 쿼리 옵션이 갱신된다(재시작 불필요).
   const isCacheEnabled = useAirspaceCacheSettingStore((state) => state.enabled);
@@ -49,6 +57,7 @@ export const useAirspaceZoneQueries = (): UseAirspaceZoneQueriesReturn => {
   const results = useQueries({
     queries: AIRSPACE_ZONE_CONFIGS.map((config) => ({
       queryKey: getAirspaceZoneQueryKey(config),
+      enabled,
       queryFn: async () => {
         const data = await fetchZoneGroup(config.typenames);
         // 저장은 다음 로드를 위한 부가 작업이라 기다리지 않는다(실패해도 writeZoneCache가 삼킨다).
@@ -97,6 +106,12 @@ export const useAirspaceZoneQueries = (): UseAirspaceZoneQueriesReturn => {
     // 캐시를 켠 동안은 staleTime(24시간)이 지난 그룹만 개별적으로 재패칭하고, 모두 신선하면 네트워크 요청 없이
     // 안내 토스트만 띄운다 (이슈 #37, 모바일 데이터 절감). 이때 마지막 갱신 시각을 알려 눌러도 변화가 없는 이유를 보여 준다.
     refreshStaleZones: () => {
+      // 비활성 쿼리도 refetch()를 직접 부르면 조회되므로(enabled는 자동 조회만 막는다) 여기서 먼저 막는다.
+      if (!enabled) {
+        message.info(WMS_REFRESH_MESSAGE, INFO_TOAST_DURATION_SECONDS);
+        return;
+      }
+
       if (!isCacheEnabled) {
         results.forEach((result) => {
           result.refetch();

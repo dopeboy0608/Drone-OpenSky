@@ -47,10 +47,13 @@ export const MapView = () => {
     hasLocation,
   );
 
-  const { results: airspaceZoneResults, refreshStaleZones } = useAirspaceZoneQueries();
+  const renderMode = useAirspaceRenderModeStore((state) => state.renderMode);
+  // WMS 모드에서는 폴리곤 조회를 멈춘다. 폴리곤으로 돌아오면 다시 조회(또는 캐시 사용)한다.
+  const { results: airspaceZoneResults, refreshStaleZones } = useAirspaceZoneQueries({
+    enabled: renderMode === 'polygon',
+  });
 
   const airspaceVisibility = useAirspaceFilterStore((state) => state.visibility);
-  const renderMode = useAirspaceRenderModeStore((state) => state.renderMode);
   const filteredZoneTypes = useMemo(
     () => getVisibleZoneTypes(airspaceVisibility),
     [airspaceVisibility],
