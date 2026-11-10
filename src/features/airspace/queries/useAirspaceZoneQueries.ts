@@ -53,7 +53,11 @@ export const useAirspaceZoneQueries = (): UseAirspaceZoneQueriesReturn => {
         return data;
       },
       staleTime: STALE_TIME_MS,
-      refetchOnWindowFocus: false,
+      // 포커스 복귀 재조회는 staleTime이 지난 그룹만 대상이라, 신선한 캐시를 쓰는 동안은 요청이 늘지 않는다 (이슈 #68, #37).
+      refetchOnWindowFocus: true,
+      // 포커스 이벤트 없이 탭을 계속 보고 있어도 만료 주기마다 갱신한다. 백그라운드 탭에서는 멈춰 모바일 데이터를 아낀다.
+      refetchInterval: STALE_TIME_MS,
+      refetchIntervalInBackground: false,
     })),
   });
 
