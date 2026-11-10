@@ -8,14 +8,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { readZoneCache, writeZoneCache } from '@/features/airspace/cache/airspaceCacheStore';
 import { hydrateAirspaceCache } from '@/features/airspace/cache/hydrateAirspaceCache';
+import { useAirspaceCacheSettingStore } from '@/features/airspace/store/airspaceCacheSettingStore';
 import { useAirspaceZoneQueries } from '@/features/airspace/queries/useAirspaceZoneQueries';
 import { server } from '@/test/mocks/server';
-
-// 캐시 비활성(기본값) 상태에서도 캐시 동작을 검증할 수 있도록 이 파일에서만 플래그를 켠다.
-vi.mock('@/features/airspace/constants', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/features/airspace/constants')>()),
-  AIRSPACE_CACHE_ENABLED: true,
-}));
 
 const WFS_URL = 'https://server-eosin-five-92.vercel.app/api/vworld-api/wfs';
 const HOUR_MS = 60 * 60 * 1000;
@@ -44,6 +39,8 @@ const renderQueries = (queryClient: QueryClient) => {
 describe('useAirspaceZoneQueries + IndexedDB 캐시', () => {
   beforeEach(() => {
     globalThis.indexedDB = new IDBFactory();
+    // 기본값(꺼짐)이 아니라 캐시를 켠 상태의 동작을 검증하는 파일이다.
+    useAirspaceCacheSettingStore.setState({ enabled: true });
   });
 
   it('모든 그룹의 캐시가 24시간 이내면 네트워크 요청 없이 캐시 데이터를 쓴다', async () => {

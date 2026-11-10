@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Map as KakaoMap, MapMarker, useKakaoLoader } from 'react-kakao-maps-sdk';
 
 import { AirspaceFilterPanel } from '@/features/airspace/components/AirspaceFilterPanel';
+import { AirspaceCacheMenu } from '@/features/airspace/components/AirspaceCacheMenu';
 import { AirspaceRenderModeMenu } from '@/features/airspace/components/AirspaceRenderModeMenu';
 import { AirspaceLegend } from '@/features/airspace/components/AirspaceLegend';
 import { AirspacePolygonLayer } from '@/features/airspace/components/AirspacePolygonLayer';
@@ -151,6 +152,7 @@ export const MapView = () => {
         }
       >
         <AirspaceRenderModeMenu />
+        <AirspaceCacheMenu />
       </MapControls>
     </div>
   );
