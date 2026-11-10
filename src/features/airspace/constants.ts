@@ -3,6 +3,11 @@ import type { AirspaceZoneConfig } from '@/features/airspace/types';
 // 대한민국 전역을 덮는 고정 BBOX (minLng,minLat,maxLng,maxLat). API_REFERENCE.md 실증값.
 export const KOREA_BBOX = '124,33,132,43';
 
+// 공역 캐시(IndexedDB 저장 + staleTime 기반 재조회 억제)를 쓸지 정한다. 이슈 #68에서 갱신이 안 되는 것처럼 보이는
+// 문제가 확인될 때까지 우선 끈다. 꺼져 있으면 앱을 열 때마다 새로 받고, 새로고침 버튼은 항상 재조회한다.
+// 다시 켜려면 true로 바꾸면 되고, 그때 "최신 상태입니다." 안내에는 마지막 갱신 시각이 함께 표시된다.
+export const AIRSPACE_CACHE_ENABLED = false;
+
 export const AIRSPACE_ZONE_CONFIGS: AirspaceZoneConfig[] = [
   {
     level: 'prohibited',
