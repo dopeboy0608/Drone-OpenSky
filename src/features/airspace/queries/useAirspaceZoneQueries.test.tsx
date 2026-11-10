@@ -159,6 +159,71 @@ describe('useAirspaceZoneQueries + IndexedDB 캐시', () => {
     });
   });
 
+  // 이슈 #73: WMS 모드에서는 폴리곤을 쓰지 않으므로 약 50MB 조회를 하지 않는다.
+  describe('enabled=false (WMS 모드)', () => {
+    const renderDisabled = (queryClient: QueryClient) => {
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <QueryClientProvider client={queryClient}>
+          <AntdApp>{children}</AntdApp>
+        </QueryClientProvider>
+      );
+      return renderHook(() => useAirspaceZoneQueries({ enabled: false }), { wrapper });
+    };
+    const countRequests = () => {
+      const counter = { value: 0 };
+      server.use(
+        http.get(WFS_URL, () => {
+          counter.value += 1;
+          return HttpResponse.json({ type: 'FeatureCollection', features: [] });
+        }),
+      );
+      return counter;
+    };
+
+    it('마운트해도 네트워크 요청을 하지 않고 로딩 상태도 아니다', async () => {
+      const requests = countRequests();
+
+      const { result } = renderDisabled(new QueryClient());
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(requests.value).toBe(0);
+      expect(result.current.results.some((zone) => zone.isLoading)).toBe(false);
+    });
+
+    it('새로고침 버튼도 요청하지 않고 WMS 안내만 띄운다', async () => {
+      const requests = countRequests();
+      const { result } = renderDisabled(new QueryClient());
+
+      act(() => result.current.refreshStaleZones());
+
+      expect(await screen.findByText('WMS 모드에서는 타일을 자동으로 불러옵니다.')).toBeDefined();
+      expect(requests.value).toBe(0);
+    });
+
+    it('이미 받아 둔 데이터는 그대로 돌려준다', async () => {
+      countRequests();
+      const queryClient = new QueryClient();
+      const { result, rerender } = renderHook(
+        ({ enabled }) => useAirspaceZoneQueries({ enabled }),
+        {
+          initialProps: { enabled: true },
+          wrapper: ({ children }: { children: ReactNode }) => (
+            <QueryClientProvider client={queryClient}>
+              <AntdApp>{children}</AntdApp>
+            </QueryClientProvider>
+          ),
+        },
+      );
+      await waitFor(() => {
+        expect(result.current.results.every((zone) => zone.data !== undefined)).toBe(true);
+      });
+
+      rerender({ enabled: false });
+
+      expect(result.current.results.every((zone) => zone.data !== undefined)).toBe(true);
+    });
+  });
+
   describe('조회 성공 시 저장', () => {
     const useWfsHandler = (respond: () => Response) => {
       server.use(http.get(WFS_URL, () => respond()));
