@@ -1,10 +1,10 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, screen, waitFor } from '@testing-library/react';
 import { App as AntdApp } from 'antd';
 import { IDBFactory } from 'fake-indexeddb';
 import { http, HttpResponse } from 'msw';
 import type { ReactNode } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { readZoneCache, writeZoneCache } from '@/features/airspace/cache/airspaceCacheStore';
 import { hydrateAirspaceCache } from '@/features/airspace/cache/hydrateAirspaceCache';
@@ -80,6 +80,55 @@ describe('useAirspaceZoneQueries + IndexedDB 캐시', () => {
     expect(result.current.results[0].data).toBeDefined();
     expect(result.current.results[0].isLoading).toBe(false);
     await waitFor(() => expect(requestCount).toBeGreaterThan(0));
+  });
+
+  // 이슈 #68: 탭을 열어 둔 채 만료 시간이 지나도 갱신 경로가 없던 문제.
+  describe('열어 둔 탭의 포커스 복귀', () => {
+    const mountWithFreshCache = async () => {
+      let requestCount = 0;
+      server.use(
+        http.get(WFS_URL, () => {
+          requestCount += 1;
+          return HttpResponse.json({ type: 'FeatureCollection', features: [] });
+        }),
+      );
+      for (const level of ['prohibited', 'restricted', 'available'] as const) {
+        await writeZoneCache(level, makeFeatureCollection(), Date.now() - HOUR_MS);
+      }
+      const queryClient = new QueryClient();
+      await hydrateAirspaceCache(queryClient);
+      renderQueries(queryClient);
+      return { getRequestCount: () => requestCount };
+    };
+    const returnToTab = () => {
+      focusManager.setFocused(false);
+      focusManager.setFocused(true);
+    };
+
+    afterEach(() => {
+      vi.useRealTimers();
+      focusManager.setFocused(undefined);
+    });
+
+    it('만료 시간이 지난 뒤 탭으로 돌아오면 재조회한다', async () => {
+      const { getRequestCount } = await mountWithFreshCache();
+      expect(getRequestCount()).toBe(0);
+
+      // Date만 앞당겨 24시간 경과를 흉내 낸다(타이머는 진짜를 써서 MSW 응답이 막히지 않게 한다).
+      vi.useFakeTimers({ toFake: ['Date'], now: Date.now() + 25 * HOUR_MS });
+      returnToTab();
+
+      await waitFor(() => expect(getRequestCount()).toBeGreaterThan(0));
+    });
+
+    it('아직 신선하면 탭으로 돌아와도 재조회하지 않는다', async () => {
+      const { getRequestCount } = await mountWithFreshCache();
+
+      returnToTab();
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(getRequestCount()).toBe(0);
+    });
   });
 
   describe('조회 성공 시 저장', () => {
