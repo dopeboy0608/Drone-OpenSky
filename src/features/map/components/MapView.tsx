@@ -6,6 +6,7 @@ import { AirspaceFilterPanel } from '@/features/airspace/components/AirspaceFilt
 import { AirspaceRenderModeMenu } from '@/features/airspace/components/AirspaceRenderModeMenu';
 import { AirspaceLegend } from '@/features/airspace/components/AirspaceLegend';
 import { AirspacePolygonLayer } from '@/features/airspace/components/AirspacePolygonLayer';
+import { AirspaceWmsLayer } from '@/features/airspace/components/AirspaceWmsLayer';
 import { AirspaceZoneOverlay } from '@/features/airspace/components/AirspaceZoneOverlay';
 import { useSelectedZone } from '@/features/airspace/hooks/useSelectedZone';
 import { AddressSearch } from '@/features/map/components/AddressSearch';
@@ -115,6 +116,7 @@ export const MapView = () => {
             onSelectZone={selectZone}
           />
         ))}
+        {renderMode === 'wms' && <AirspaceWmsLayer />}
         {selectedZone && (
           <AirspaceZoneOverlay
             position={selectedZone.position}
