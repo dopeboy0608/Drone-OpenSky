@@ -2,7 +2,6 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import { queryClient } from './api/queryClient';
-import { AIRSPACE_CACHE_ENABLED } from './features/airspace/constants';
 import { hydrateAirspaceCache } from './features/airspace/cache/hydrateAirspaceCache';
 import { useAirspaceCacheSettingStore } from './features/airspace/store/airspaceCacheSettingStore';
 
