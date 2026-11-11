@@ -62,11 +62,22 @@
 
 (서브태스크 완료 시 추가)
 
+### 현재 상태 (2026-11-11)
+
+| #   | 키  | 상태             | 비고                                                                                                                        |
+| --- | --- | ---------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| 01  | #71 | 머지             |                                                                                                                             |
+| 02  | #72 | 머지             |                                                                                                                             |
+| 03  | #73 | 머지 (이슈 열림) | LAYERS 4개 제한으로 슬롯 3개 분할 후 타일 표시 확인됨(사용자 보고). 닫기 전 사용자 확인 필요                                |
+| 04  | #74 | 코드 변경 없음   | `deploy.yml`이 이미 `VITE_VWORLD_API_KEY` 시크릿을 빌드에 주입. 남은 일은 프로덕션에서 타일이 뜨는지 확인(사용자 콘솔 작업) |
+| 05  | #75 | 머지 (이슈 열림) | 클릭 안내, 앵커 보정, 클릭 지연 개선(사용자 확인: "개선되었어"). 로딩 표시 모양은 별도 이슈로 분리                          |
+| 06  | #76 | 착수 전          | 아래 "06 준비" 참고. 줌 오차 측정과 국토부 비교는 브라우저에서 사용자가 확인해야 함                                         |
+
 ### 03 (#73) — 2026-11-10
 
 - 구현: `getVisibleTypenames`(TDD), `AirspaceWmsLayer`가 필터 스토어를 구독해 `LAYERS`를 구성하고 필터 변경 시 오버레이를 뗐다 붙임, `useAirspaceZoneQueries({ enabled })`와 `MapView` 연결. 테스트 190개 통과.
 - 결정: 새로고침 버튼은 WMS 모드에서 조회 없이 안내만 한다(타일 재요청은 범위 밖). 전부 꺼지면 오버레이를 붙이지 않는다.
-- 후속 수정: VWorld WMS \`LAYERS\` 최대 4개 제한(\`INVALID_RANGE\`)으로 12종 단일 요청이 전부 실패 → 4개씩 슬롯 3개로 분할(\`chunkTypenames\`). 상세는 TROUBLE_SHOOTING.md.
+- 후속 수정: VWorld WMS `LAYERS` 최대 4개 제한(`INVALID_RANGE`)으로 12종 단일 요청이 전부 실패 → 4개씩 슬롯 3개로 분할(`chunkTypenames`). 상세는 TROUBLE_SHOOTING.md.
 - 미검증(브라우저): 필터 변경 시 오버레이 재부착이 실제로 타일을 다시 받는지, 브라우저 캐시/타일 캐시가 이전 LAYERS 타일을 쓰지 않는지.
 
 ### 05 (#75) — 2026-11-10
@@ -74,3 +85,98 @@
 - 결정: 클릭 지점만 WFS 조회(사용자 선택). `GetFeatureInfo`는 VWorld 지원·CORS 불확실, 숨김 폴리곤은 50MB 조회가 #73 취지와 충돌해 제외.
 - 구현: `isPointInMultiPolygon`(홀 처리, TDD), `fetchAirspaceZonesAtPoint`(±0.0001° BBOX), `findZoneTypeAtPoint`(typename 순서 우선순위, 일부 실패 허용·구역 없음+실패면 오류), `useWmsZoneClick`(최신 요청만 반영), `MapView` 연결. 안내 박스 자동 닫힘 기준을 폴리곤 숨김과 분리하고 모드 전환 시 닫음. 테스트 219개 통과.
 - 미검증(브라우저/실서버): VWorld WFS가 작은 BBOX에서 실제로 해당 구역만 돌려주는지(BBOX 축 순서·교차 판정), 클릭 응답 지연, 프로덕션 relay 응답.
+
+### 06 준비 (#76) — 2026-11-11
+
+카카오 SDK(`dapi.kakao.com`)와 외부 사이트가 이 개발 환경의 네트워크 정책으로 막혀 있어 줌 오차 측정과 국토부 비교는 직접 할 수 없다. 사용자가 브라우저에서 확인하고, 결과를 받아 문서화·결정하는 순서로 나눈다.
+
+**1. 줌 오차 측정 (브라우저 콘솔, 지도가 뜬 페이지에서 실행)**
+
+레벨별로 현재 요청하는 외접 사각형이 실제 타일 영역(사변형)보다 얼마나 큰지 출력한다. `LatLng.toCoords()`가 없으면 오류가 나므로 그 오류 메시지를 알려 주면 대체 방법을 찾는다.
+
+```js
+// 지도가 떠 있는 페이지의 브라우저 콘솔에서 실행한다. 레벨별로 카카오 타일 한 장(서울 시청 기준)의
+// 네 모서리를 3857로 바꿔, 현재 요청하는 외접 사각형이 실제 타일 영역(사변형)보다 얼마나 큰지 출력한다.
+(() => {
+  const R = 6378137;
+  const toMercator = (latLng) => {
+    const lat = latLng.getLat();
+    const lng = latLng.getLng();
+    return [
+      (R * (lng * Math.PI)) / 180,
+      R * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)),
+    ];
+  };
+  const quadArea = (points) =>
+    Math.abs(
+      points.reduce((sum, [x1, y1], i) => {
+        const [x2, y2] = points[(i + 1) % points.length];
+        return sum + (x1 * y2 - x2 * y1);
+      }, 0),
+    ) / 2;
+  const center = new kakao.maps.LatLng(37.5665, 126.978).toCoords(); // 서울 시청
+  const rows = [];
+  for (let z = 1; z <= 14; z++) {
+    const size = 80 * 2 ** z;
+    const x = Math.floor((center.getX() + 75000) / size);
+    const y = Math.floor((center.getY() + 150000) / size);
+    const [minX, minY, maxX, maxY] = [
+      -75000 + size * x,
+      -150000 + size * y,
+      -75000 + size * (x + 1),
+      -150000 + size * (y + 1),
+    ];
+    // 사변형 순서: 좌하 → 우하 → 우상 → 좌상
+    const quad = [
+      [minX, minY],
+      [maxX, minY],
+      [maxX, maxY],
+      [minX, maxY],
+    ].map(([cx, cy]) => toMercator(new kakao.maps.Coords(cx, cy).toLatLng()));
+    const xs = quad.map(([qx]) => qx);
+    const ys = quad.map(([, qy]) => qy);
+    const rectWidth = Math.max(...xs) - Math.min(...xs);
+    const rectHeight = Math.max(...ys) - Math.min(...ys);
+    const trueWidth =
+      (Math.hypot(quad[1][0] - quad[0][0], quad[1][1] - quad[0][1]) +
+        Math.hypot(quad[2][0] - quad[3][0], quad[2][1] - quad[3][1])) /
+      2;
+    const trueHeight =
+      (Math.hypot(quad[3][0] - quad[0][0], quad[3][1] - quad[0][1]) +
+        Math.hypot(quad[2][0] - quad[1][0], quad[2][1] - quad[1][1])) /
+      2;
+    rows.push({
+      level: z,
+      타일변_m: Math.round(trueWidth),
+      외접사각형_m: `${Math.round(rectWidth)}×${Math.round(rectHeight)}`,
+      면적비: +((rectWidth * rectHeight) / quadArea(quad)).toFixed(3),
+      // 256px 타일 안에서 외접 사각형이 한 방향으로 최대 몇 px 어긋날 수 있는지(가장 먼 모서리 기준 근사)
+      최대어긋남_px: +(
+        ((Math.max(rectWidth - trueWidth, rectHeight - trueHeight) / Math.max(trueWidth, 1)) *
+          256) /
+        2
+      ).toFixed(1),
+    });
+  }
+  console.table(rows);
+})();
+```
+
+해석 기준(제안): 면적비가 1에 가까울수록 정확하다. `최대어긋남_px`가 2~3px 이하이면 육안으로 구분하기 어렵다고 보고, 그보다 큰 레벨은 오버레이를 쓸 줌 범위를 제한하거나 타일 분할을 검토한다. 이 값은 외접 사각형 근사에 따른 상한 추정이며, 이름 길이와 무관하게 모든 레이어에 같게 적용된다.
+
+**2. 국토부 원스톱과 위치 비교 (사용자가 두 화면을 나란히 확인)**
+
+기준: `https://drone.onestop.go.kr/common/flightArea`. 같은 위치·확대 수준에서 WMS 모드와 폴리곤 모드를 비교해 아래를 채운다.
+
+| 위치                         | 확인 항목                                | WMS 모드 | 폴리곤 모드 | 비고 |
+| ---------------------------- | ---------------------------------------- | -------- | ----------- | ---- |
+| 서울 (금지구역 P73 일대)     | 경계가 국토부와 겹치는가 / 빗금·라벨     |          |             |      |
+| 국립공원 (홀 포함)           | 홀(구멍)이 국토부와 같은 모양으로 비는가 |          |             |      |
+| 관제권                       | 경계 위치                                |          |             |      |
+| 확대 레벨 높음(예: 레벨 3~4) | 외곽선이 국토부와 몇 px 어긋나는가       |          |             |      |
+
+**3. 기본 모드 결정 기준(제안)**
+
+- WMS가 국토부와 일치하고 줌 오차가 허용 범위이며 프로덕션 키·도메인이 확인되면 WMS를 기본으로 검토한다.
+- 단, WMS 모드의 구역 클릭은 클릭 지점 WFS 조회에 의존해 응답 지연이 있다(현재 체감 개선은 확인됨). 클릭 안내를 폴리곤 모드가 더 빠르게 제공하므로, "표기 일치"와 "클릭 응답성" 중 무엇을 우선할지를 결정해야 한다.
+- 결정 전까지 기본은 폴리곤을 유지한다(결정 로그 참고).
