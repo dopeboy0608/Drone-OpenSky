@@ -1,6 +1,6 @@
 import { act, renderHook, screen, waitFor } from '@testing-library/react';
 import { App as AntdApp } from 'antd';
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -51,7 +51,7 @@ describe('useWmsZoneClick', () => {
     server.use(http.get(WFS_URL, hit));
     const { result, selectZone } = setup();
 
-    await act(() => result.current(POINT));
+    await act(() => result.current.onMapClick(POINT));
 
     expect(selectZone).toHaveBeenCalledWith({ position: POINT, zoneType: '비행금지구역' });
   });
@@ -60,7 +60,7 @@ describe('useWmsZoneClick', () => {
     server.use(http.get(WFS_URL, miss));
     const { result, selectZone, clearZone } = setup();
 
-    await act(() => result.current(POINT));
+    await act(() => result.current.onMapClick(POINT));
 
     expect(clearZone).toHaveBeenCalled();
     expect(selectZone).not.toHaveBeenCalled();
@@ -76,7 +76,7 @@ describe('useWmsZoneClick', () => {
     );
     const { result, selectZone, clearZone } = setup({ enabled: false });
 
-    await act(() => result.current(POINT));
+    await act(() => result.current.onMapClick(POINT));
 
     expect(requests).toBe(0);
     expect(selectZone).not.toHaveBeenCalled();
@@ -93,7 +93,7 @@ describe('useWmsZoneClick', () => {
     );
     const { result, clearZone } = setup({ typenames: [] });
 
-    await act(() => result.current(POINT));
+    await act(() => result.current.onMapClick(POINT));
 
     expect(requests).toBe(0);
     expect(clearZone).toHaveBeenCalled();
@@ -103,21 +103,20 @@ describe('useWmsZoneClick', () => {
     server.use(http.get(WFS_URL, () => HttpResponse.error()));
     const { result, selectZone, clearZone } = setup();
 
-    await act(() => result.current(POINT));
+    await act(() => result.current.onMapClick(POINT));
 
     expect(await screen.findByText('구역 정보를 불러오지 못했습니다.')).toBeDefined();
     expect(selectZone).not.toHaveBeenCalled();
     expect(clearZone).not.toHaveBeenCalled();
   });
 
-  it('연속 클릭하면 늦게 도착한 이전 클릭의 응답은 무시한다', async () => {
-    let call = 0;
+  it('연속 클릭하면 이전 클릭의 결과는 무시하고 마지막 클릭 결과만 반영한다', async () => {
     server.use(
-      http.get(WFS_URL, async () => {
-        call += 1;
-        if (call === 1) {
-          // 첫 번째 클릭의 응답을 일부러 늦춘다.
-          await new Promise((resolve) => setTimeout(resolve, 80));
+      http.get(WFS_URL, async ({ request }) => {
+        // 첫 번째 클릭(경도 1)은 느린 적중, 두 번째 클릭(경도 2)은 빠른 미적중으로 구분한다.
+        const isFirstClick = new URL(request.url).searchParams.get('BBOX')?.startsWith('0.9999');
+        if (isFirstClick) {
+          await delay(80);
           return hit();
         }
         return miss();
@@ -126,12 +125,80 @@ describe('useWmsZoneClick', () => {
     const { result, selectZone, clearZone } = setup();
 
     await act(async () => {
-      const first = result.current({ lat: 1, lng: 1 });
-      const second = result.current({ lat: 2, lng: 2 });
+      const first = result.current.onMapClick({ lat: 1, lng: 1 });
+      const second = result.current.onMapClick({ lat: 2, lng: 2 });
       await Promise.all([first, second]);
     });
 
     await waitFor(() => expect(clearZone).toHaveBeenCalled());
     expect(selectZone).not.toHaveBeenCalled();
+  });
+
+  describe('조회 중 표시 (pendingPosition)', () => {
+    it('처음에는 없고, 클릭하는 즉시 클릭 좌표가 잡힌다', async () => {
+      server.use(
+        http.get(WFS_URL, async () => {
+          await delay(60);
+          return hit();
+        }),
+      );
+      const { result } = setup();
+      expect(result.current.pendingPosition).toBeNull();
+
+      let click: Promise<void> = Promise.resolve();
+      act(() => {
+        click = result.current.onMapClick(POINT);
+      });
+
+      expect(result.current.pendingPosition).toEqual(POINT);
+      await act(() => click);
+    });
+
+    it('조회가 끝나면 사라진다 (적중·미적중·오류 모두)', async () => {
+      const { result } = setup();
+
+      server.use(http.get(WFS_URL, hit));
+      await act(() => result.current.onMapClick(POINT));
+      expect(result.current.pendingPosition).toBeNull();
+
+      server.use(http.get(WFS_URL, miss));
+      await act(() => result.current.onMapClick(POINT));
+      expect(result.current.pendingPosition).toBeNull();
+
+      server.use(http.get(WFS_URL, () => HttpResponse.error()));
+      await act(() => result.current.onMapClick(POINT));
+      expect(result.current.pendingPosition).toBeNull();
+    });
+
+    it('요청이 필요 없는 경우(비활성, 켜진 typename 없음)에는 표시하지 않는다', async () => {
+      const disabled = setup({ enabled: false });
+      await act(() => disabled.result.current.onMapClick(POINT));
+      expect(disabled.result.current.pendingPosition).toBeNull();
+
+      const empty = setup({ typenames: [] });
+      await act(() => empty.result.current.onMapClick(POINT));
+      expect(empty.result.current.pendingPosition).toBeNull();
+    });
+
+    it('연속 클릭하면 이전 클릭의 표시는 없어지고 마지막 클릭 좌표만 남는다', async () => {
+      server.use(
+        http.get(WFS_URL, async () => {
+          await delay(60);
+          return miss();
+        }),
+      );
+      const { result } = setup();
+
+      let first: Promise<void> = Promise.resolve();
+      let second: Promise<void> = Promise.resolve();
+      act(() => {
+        first = result.current.onMapClick({ lat: 1, lng: 1 });
+        second = result.current.onMapClick({ lat: 2, lng: 2 });
+      });
+
+      expect(result.current.pendingPosition).toEqual({ lat: 2, lng: 2 });
+      await act(() => Promise.all([first, second]));
+      expect(result.current.pendingPosition).toBeNull();
+    });
   });
 });
