@@ -1,5 +1,5 @@
 import { App as AntdApp } from 'antd';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { findZoneTypeAtPoint } from '@/features/airspace/api/findZoneTypeAtPoint';
 import { useLatestRequest } from '@/features/airspace/hooks/useLatestRequest';
@@ -26,7 +26,7 @@ export const useWmsZoneClick = ({
   // 조회가 끝날 때까지 클릭 지점에 보여 줄 좌표. 응답을 기다리는 동안 화면이 멈춘 것처럼 보이지 않게 한다.
   const [pendingPosition, setPendingPosition] = useState<{ lat: number; lng: number } | null>(null);
   // 연속 클릭에서 늦게 도착한 이전 응답이 나중 클릭의 결과를 덮어쓰지 않도록 마지막 요청만 반영한다.
-  const beginLatestRequest = useLatestRequest();
+  const { begin: beginLatestRequest, cancel: cancelLatestRequest } = useLatestRequest();
 
   const onMapClick = useCallback(
     async (point: { lat: number; lng: number }) => {
@@ -74,6 +74,16 @@ export const useWmsZoneClick = ({
     },
     [enabled, typenames, selectZone, clearZone, message, beginLatestRequest],
   );
+
+  // 비활성(폴리곤 모드로 전환)이 되면 이미 나간 조회는 결과를 쓸 수 없으므로 끊고 조회 중 표시도 지운다.
+  // 끊지 않으면 뒤늦게 도착한 결과가 폴리곤 모드에서 안내 박스를 연다(이슈 #94).
+  // 끊긴 요청은 최신이 아니게 되어 finally가 표시를 지우지 않으므로, 여기서 직접 지운다.
+  useEffect(() => {
+    if (!enabled) {
+      cancelLatestRequest();
+      setPendingPosition(null);
+    }
+  }, [enabled, cancelLatestRequest]);
 
   return { onMapClick, pendingPosition };
 };

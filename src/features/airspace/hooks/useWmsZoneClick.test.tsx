@@ -1,8 +1,8 @@
-import { act, renderHook, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, renderHook, screen, waitFor } from '@testing-library/react';
 import { App as AntdApp } from 'antd';
 import { delay, http, HttpResponse } from 'msw';
 import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { useWmsZoneClick } from '@/features/airspace/hooks/useWmsZoneClick';
 import { server } from '@/test/mocks/server';
@@ -200,5 +200,86 @@ describe('useWmsZoneClick', () => {
       await act(() => Promise.all([first, second]));
       expect(result.current.pendingPosition).toBeNull();
     });
+  });
+});
+
+// 이슈 #94: 클릭 조회 중에 모드를 바꾸면(enabled=false) 이미 나간 조회의 결과가 뒤늦게 반영되던 문제.
+describe('useWmsZoneClick 조회 중 비활성화', () => {
+  // 이 파일은 테스트 사이에 DOM을 정리하지 않아 앞선 테스트의 토스트가 남는다. 토스트 부재를 검증하려면 격리가 필요하다.
+  afterEach(cleanup);
+
+  const slowHit = () =>
+    server.use(
+      http.get(WFS_URL, async () => {
+        await delay(60);
+        return hit();
+      }),
+    );
+  const setupToggle = () => {
+    const selectZone = vi.fn();
+    const clearZone = vi.fn();
+    const wrapper = ({ children }: { children: ReactNode }) => <AntdApp>{children}</AntdApp>;
+    const hook = renderHook(
+      ({ enabled }: { enabled: boolean }) =>
+        useWmsZoneClick({ enabled, typenames: ['lt_c_aisprhc'], selectZone, clearZone }),
+      { initialProps: { enabled: true }, wrapper },
+    );
+    return { ...hook, selectZone, clearZone };
+  };
+
+  it('조회 중에 비활성이 되면 뒤늦게 도착한 결과로 안내를 열지 않는다', async () => {
+    slowHit();
+    const { result, rerender, selectZone, clearZone } = setupToggle();
+    let click: Promise<void> = Promise.resolve();
+    act(() => {
+      click = result.current.onMapClick(POINT);
+    });
+
+    rerender({ enabled: false });
+    await act(() => click);
+
+    expect(selectZone).not.toHaveBeenCalled();
+    expect(clearZone).not.toHaveBeenCalled();
+  });
+
+  it('조회 중에 비활성이 되면 조회 중 표시를 바로 지운다', async () => {
+    slowHit();
+    const { result, rerender } = setupToggle();
+    let click: Promise<void> = Promise.resolve();
+    act(() => {
+      click = result.current.onMapClick(POINT);
+    });
+    expect(result.current.pendingPosition).toEqual(POINT);
+
+    rerender({ enabled: false });
+
+    expect(result.current.pendingPosition).toBeNull();
+    await act(() => click);
+    expect(result.current.pendingPosition).toBeNull();
+  });
+
+  it('비활성이 되어 끊긴 조회는 오류 토스트를 띄우지 않는다', async () => {
+    slowHit();
+    const { result, rerender } = setupToggle();
+    let click: Promise<void> = Promise.resolve();
+    act(() => {
+      click = result.current.onMapClick(POINT);
+    });
+
+    rerender({ enabled: false });
+    await act(() => click);
+
+    expect(screen.queryByText('구역 정보를 불러오지 못했습니다.')).toBeNull();
+  });
+
+  it('다시 활성화한 뒤의 새 클릭은 정상적으로 안내를 연다', async () => {
+    server.use(http.get(WFS_URL, hit));
+    const { result, rerender, selectZone } = setupToggle();
+    rerender({ enabled: false });
+    rerender({ enabled: true });
+
+    await act(() => result.current.onMapClick(POINT));
+
+    expect(selectZone).toHaveBeenCalledWith({ position: POINT, zoneType: '비행금지구역' });
   });
 });
