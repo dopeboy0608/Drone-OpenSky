@@ -14,6 +14,7 @@ import { AddressSearch } from '@/features/map/components/AddressSearch';
 import { MapControls } from '@/features/map/components/MapControls';
 import { useAirspaceMapInteraction } from '@/features/airspace/hooks/useAirspaceMapInteraction';
 import { useCurrentCenter } from '@/features/map/hooks/useCurrentCenter';
+import { useAddressAtPosition } from '@/features/map/hooks/useAddressAtPosition';
 import { useMapMarker } from '@/features/map/hooks/useMapMarker';
 import { useAirspaceZoneQueries } from '@/features/airspace/queries/useAirspaceZoneQueries';
 import { useAirspaceFilterStore } from '@/features/airspace/store/airspaceFilterStore';
@@ -60,6 +61,8 @@ export const MapView = () => {
     handleWmsMapClick,
     pendingPosition,
   } = useAirspaceMapInteraction({ renderMode, visibility: airspaceVisibility });
+
+  const selectedAddress = useAddressAtPosition(selectedZone?.position ?? null);
 
   const [mapCenter, setMapCenter] = useState(DEFAULT_CENTER);
   // "현재위치로 이동"은 kakaoMapInstance.panTo()로 명령형 호출한다. react-kakao-maps-sdk의
@@ -151,6 +154,7 @@ export const MapView = () => {
           <AirspaceZoneOverlay
             position={selectedZone.position}
             zoneType={selectedZone.zoneType}
+            address={selectedAddress}
             onClose={clearZone}
           />
         )}

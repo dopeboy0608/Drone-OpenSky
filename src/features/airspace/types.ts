@@ -26,5 +26,6 @@ export interface VWorldFeatureCollection {
 
 export interface SelectedZone {
   position: { lat: number; lng: number };
-  zoneType: string;
+  // null이면 클릭 지점에 조회된 규제 구역이 없다는 뜻이다(#27).
+  zoneType: string | null;
 }
