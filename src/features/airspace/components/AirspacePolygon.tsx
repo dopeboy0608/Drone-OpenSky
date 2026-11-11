@@ -29,12 +29,6 @@ export const AirspacePolygon = memo(
 
     const polygonRef = useRef<kakao.maps.Polygon>(null);
 
-    // 숨길 때 언마운트하면 다시 켤 때 Kakao Polygon을 새로 만들고 path를 설정하는 비용이 한꺼번에
-    // 발생한다. 마운트는 유지하고 지도에서만 떼었다 붙여 그 비용을 피한다 (이슈 #47).
-    useLayoutEffect(() => {
-      polygonRef.current?.setMap(isVisible ? map : null);
-    }, [isVisible, map]);
-
     const handleClick = useCallback(
       (_target: unknown, mouseEvent: kakao.maps.event.MouseEvent) => {
         if (!zoneType) {
@@ -47,6 +41,12 @@ export const AirspacePolygon = memo(
       },
       [zoneType, onSelectZone],
     );
+
+    // 숨길 때 언마운트하면 다시 켤 때 Kakao Polygon을 새로 만들고 path를 설정하는 비용이 한꺼번에
+    // 발생한다. 마운트는 유지하고 지도에서만 떼었다 붙여 그 비용을 피한다 (이슈 #47).
+    useLayoutEffect(() => {
+      polygonRef.current?.setMap(isVisible ? map : null);
+    }, [isVisible, map]);
 
     return (
       <>

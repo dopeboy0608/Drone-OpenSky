@@ -1,6 +1,7 @@
 import { fetchAirspaceZonesAtPoint } from '@/features/airspace/api/fetchAirspaceZonesAtPoint';
-import { TYPENAME_ZONE_LABELS } from '@/features/airspace/constants';
 import { isPointInMultiPolygon } from '@/features/airspace/utils/isPointInMultiPolygon';
+
+import { TYPENAME_ZONE_LABELS } from '@/features/airspace/constants';
 
 type Settled = { status: 'fulfilled'; isInside: boolean } | { status: 'rejected'; reason: unknown };
 

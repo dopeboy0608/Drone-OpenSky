@@ -20,7 +20,9 @@ export const AddressSearch = ({ onSelectCandidate }: AddressSearchProps) => {
   const [inputValue, setInputValue] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
   const [isOpen, setIsOpen] = useState(false);
+
   const { candidates, isError, errorUpdatedAt, isEmpty } = useAddressSearch(searchKeyword);
+
   // 이미 안내한 에러(발생 시각 기준). 이전 검색어로 돌아와 캐시된 에러가 다시 보여도 토스트를 반복하지 않는다.
   const toastedErrorsRef = useRef(new Set<number>());
 
@@ -62,13 +64,6 @@ export const AddressSearch = ({ onSelectCandidate }: AddressSearchProps) => {
     }
   };
 
-  useEffect(() => {
-    if (isError && !toastedErrorsRef.current.has(errorUpdatedAt)) {
-      toastedErrorsRef.current.add(errorUpdatedAt);
-      message.error(SEARCH_ERROR_MESSAGE);
-    }
-  }, [isError, errorUpdatedAt, message]);
-
   // antd는 mousedown으로 바깥 클릭을 감지하는데, 지도 위 폴리곤 같은 요소는 mousedown 전파를 막고
   // 모바일 터치는 마우스 이벤트 없이 포인터 이벤트만 발생해 목록이 그대로 남는다. 그래서 캡처 단계의
   // pointerdown(전파를 막아도 먼저 받는다)으로 검색 영역 밖을 누르면 직접 닫는다.
@@ -87,6 +82,13 @@ export const AddressSearch = ({ onSelectCandidate }: AddressSearchProps) => {
 
     return () => document.removeEventListener('pointerdown', closeOnOutsidePointerDown, true);
   }, [isOpen]);
+
+  useEffect(() => {
+    if (isError && !toastedErrorsRef.current.has(errorUpdatedAt)) {
+      toastedErrorsRef.current.add(errorUpdatedAt);
+      message.error(SEARCH_ERROR_MESSAGE);
+    }
+  }, [isError, errorUpdatedAt, message]);
 
   return (
     // 우측 상단에는 컨트롤 버튼(MapControls)이 있어 right-20으로 자리를 비워 둔다.

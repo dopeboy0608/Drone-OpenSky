@@ -1,12 +1,13 @@
 import { useEffect, useMemo } from 'react';
 import { useMap } from 'react-kakao-maps-sdk';
 
-import { TYPENAME_ZONE_LABELS } from '@/features/airspace/constants';
 import { useAirspaceFilterStore } from '@/features/airspace/store/airspaceFilterStore';
 import { buildWmsTileUrl } from '@/features/airspace/utils/buildWmsTileUrl';
 import { chunkTypenames } from '@/features/airspace/utils/chunkTypenames';
 import { getVisibleTypenames } from '@/features/airspace/utils/getVisibleTypenames';
 import { getWmsTileBbox } from '@/features/airspace/utils/getWmsTileBbox';
+
+import { TYPENAME_ZONE_LABELS } from '@/features/airspace/constants';
 
 const TILE_SIZE = 256;
 // VWorld WMS는 LAYERS를 요청당 4개까지만 받는다(5개 이상이면 INVALID_RANGE 오류 XML이 와서 타일이 전부 실패한다).

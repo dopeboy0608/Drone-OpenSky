@@ -284,3 +284,31 @@
 1. `/dopeboy0608-skills:code-organizer`를 `src` 전체에 적용한다(이슈 요청, 사용자 승인 완료). 로직 변경 없이 import 순서와 훅/상태/이펙트 배치만 정렬한다.
 2. 사용자가 `/dopeboy0608-skills:fowler-refactor`를 직접 호출한다(모델 호출 불가 스킬). 호출 시 범위는 "`src` 전체, 이 문서의 의존 그래프와 §6 암묵적 의존 포함, 모듈 단위로 자르지 말 것"으로 지정한다.
 3. 제안이 승인되면 묶음 단위로 적용하되, 매 단계마다 `pnpm test` / `pnpm lint` / `npx tsc --noEmit`으로 회귀를 확인한다.
+
+## 11. `code-organizer` 적용 결과 (2026-11-11)
+
+범위: `src` 프로덕션 파일 51개(타입 선언 `*.d.ts`와 테스트·모의 제외). 이동만 했고 이름·로직·주석은 그대로다. 프로젝트에 import 정렬 린트 규칙이 없어(Biome `assist` 비활성) 스킬의 Part 1(import)과 Part 2(본문)를 모두 적용했다. 변경 파일 12개.
+
+**Part 1: import (10개 파일)**
+
+- 이미 대부분 정렬돼 있어 상수·타입을 맨 아래 그룹(5)으로 내리고 그룹 사이 빈 줄을 맞추는 정도였다: `fetchAirspaceZones`, `fetchAirspaceZonesAtPoint`, `findZoneTypeAtPoint`, `hydrateAirspaceCache`, `AirspacePolygonLayer`, `AirspaceWmsLayer`, `useWmsZoneClick`, `useAirspaceZoneQueries`, `MapView`, `routes/router`.
+- 스킬이 순서를 정의하지 않은 `api/`, `cache/`, `utils/`는 기존 관례(경로 알파벳 순)를 유지했다.
+
+**Part 2: 컴포넌트·훅 본문 (4개 파일)**
+
+| 파일                  | 변경                                                                                                                                            |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MapView.tsx`         | 스토어 구독 → 로더·쿼리 훅 → 상태 → ref → 파생값(`useMemo`) → 파생값에 의존하는 훅(`useSelectedZone`, `useWmsZoneClick`) → 이펙트 순으로 재배치 |
+| `AddressSearch.tsx`   | 단일 의존 이펙트(`[isOpen]`)를 다중 의존 이펙트 앞으로, 상태에 의존하는 훅 앞 빈 줄                                                             |
+| `AirspacePolygon.tsx` | `useCallback` 핸들러를 `useLayoutEffect` 위로                                                                                                   |
+| `useWmsZoneClick.ts`  | `useCallback` 핸들러(`onMapClick`)를 마운트 이펙트 위로                                                                                         |
+
+**검증**: 변경 전후 줄 집합이 12개 파일 모두 동일(이동만 있음), `pnpm lint`, `npx tsc --noEmit`, `pnpm test`(238개), `prettier --check` 통과. 줄 집합 비교만으로는 효과가 중간에서 잘리는 편집 오류를 잡지 못했고(작업 중 한 번 발생해 테스트와 린트가 잡았다), 최종 보증은 위 네 가지 검사다.
+
+**이동하지 않고 제안으로 남긴 항목** (스킬: 경계가 모호하면 옮기지 않는다)
+
+1. `@tanstack/react-query`: 스킬 예시는 라우터를 그룹 2, 외부 패키지를 그룹 1로 두지만 쿼리 라이브러리는 "API 클라이언트/쿼리 훅"으로 그룹 2일 수도 있어 그룹 1에 그대로 두었다.
+2. `import type`을 외부 패키지에서 가져오는 경우(`hydrateAirspaceCache`의 `QueryClient`): 스킬은 `import type`을 그룹 5-b에 두라고 하지만 프로젝트 타입이 아니어서 옮기지 않았다.
+3. `@/pages/*`, `@/routes/*`, `./App` 등 스킬이 계층으로 정의하지 않은 모듈(`routes/router.tsx`, `App.tsx`, `index.tsx`): 위치 변경 없음. `App.tsx`·`index.tsx`는 상대 경로(`./`)라 다른 파일과 스타일이 다르다.
+4. `AirspaceWmsLayer`의 `useMap()`(컨텍스트)과 `useAirspaceFilterStore`(스토어)는 둘 다 1a 블록이라 기존 순서를 유지했다.
+5. 테스트 파일 36개: 이번 범위에서 제외했다(프로덕션 54개 기준 요청).

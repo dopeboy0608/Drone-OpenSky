@@ -5,6 +5,7 @@ import {
   createRoute,
   createRouter,
 } from '@tanstack/react-router';
+
 import { MapPage } from '@/pages/MapPage';
 
 const rootRoute = createRootRoute({

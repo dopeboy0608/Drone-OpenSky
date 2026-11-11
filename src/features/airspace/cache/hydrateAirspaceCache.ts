@@ -1,8 +1,9 @@
 import type { QueryClient } from '@tanstack/react-query';
 
 import { readZoneCache, type ZoneCacheEntry } from '@/features/airspace/cache/airspaceCacheStore';
-import { AIRSPACE_ZONE_CONFIGS } from '@/features/airspace/constants';
 import { getAirspaceZoneQueryKey } from '@/features/airspace/queries/airspaceZoneQueryKey';
+
+import { AIRSPACE_ZONE_CONFIGS } from '@/features/airspace/constants';
 import type { AirspaceZoneConfig } from '@/features/airspace/types';
 
 // 읽기는 데스크톱 기준 수 ms~수십 ms지만, 느린 모바일 저장소가 첫 화면을 붙잡지 않도록 상한을 둔다.

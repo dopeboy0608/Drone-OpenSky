@@ -2,6 +2,7 @@ import { App as AntdApp } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { findZoneTypeAtPoint } from '@/features/airspace/api/findZoneTypeAtPoint';
+
 import type { SelectedZone } from '@/features/airspace/types';
 
 const ERROR_TOAST_DURATION_SECONDS = 3;
@@ -27,14 +28,6 @@ export const useWmsZoneClick = ({
   // 연속 클릭에서 늦게 도착한 이전 응답이 나중 클릭의 결과를 덮어쓰지 않도록 마지막 요청만 반영한다.
   const latestRequestIdRef = useRef(0);
   const abortControllerRef = useRef<AbortController | null>(null);
-
-  // 모드를 바꾸거나 언마운트되면 진행 중인 조회를 끊는다.
-  useEffect(
-    () => () => {
-      abortControllerRef.current?.abort();
-    },
-    [],
-  );
 
   const onMapClick = useCallback(
     async (point: { lat: number; lng: number }) => {
@@ -85,6 +78,14 @@ export const useWmsZoneClick = ({
       }
     },
     [enabled, typenames, selectZone, clearZone, message],
+  );
+
+  // 모드를 바꾸거나 언마운트되면 진행 중인 조회를 끊는다.
+  useEffect(
+    () => () => {
+      abortControllerRef.current?.abort();
+    },
+    [],
   );
 
   return { onMapClick, pendingPosition };
