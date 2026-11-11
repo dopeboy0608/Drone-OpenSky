@@ -1,5 +1,5 @@
 import { App as AntdApp, Spin } from 'antd';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Map as KakaoMap, MapMarker, useKakaoLoader } from 'react-kakao-maps-sdk';
 
 import { AirspaceFilterPanel } from '@/features/airspace/components/AirspaceFilterPanel';
@@ -12,21 +12,15 @@ import { AirspaceWmsLayer } from '@/features/airspace/components/AirspaceWmsLaye
 import { AirspaceZoneOverlay } from '@/features/airspace/components/AirspaceZoneOverlay';
 import { AddressSearch } from '@/features/map/components/AddressSearch';
 import { MapControls } from '@/features/map/components/MapControls';
-import { useSelectedZone } from '@/features/airspace/hooks/useSelectedZone';
-import { useWmsZoneClick } from '@/features/airspace/hooks/useWmsZoneClick';
+import { useAirspaceMapInteraction } from '@/features/airspace/hooks/useAirspaceMapInteraction';
 import { useCurrentCenter } from '@/features/map/hooks/useCurrentCenter';
 import { useMapMarker } from '@/features/map/hooks/useMapMarker';
 import { useAirspaceZoneQueries } from '@/features/airspace/queries/useAirspaceZoneQueries';
 import { useAirspaceFilterStore } from '@/features/airspace/store/airspaceFilterStore';
 import { useAirspaceRenderModeStore } from '@/features/airspace/store/airspaceRenderModeStore';
-import { getVisibleTypenames } from '@/features/airspace/utils/getVisibleTypenames';
-import { getVisibleZoneTypes } from '@/features/airspace/utils/getVisibleZoneTypes';
 
 import { DEFAULT_CENTER, DEFAULT_ZOOM_LEVEL } from '@/features/map/constants';
 import type { MapPosition, SearchCandidate } from '@/features/map/types';
-
-// 참조가 고정된 빈 Set. 렌더마다 새로 만들면 레이어/선택 해제 이펙트가 매번 다시 돈다.
-const NO_VISIBLE_ZONE_TYPES: ReadonlySet<string> = new Set();
 
 export const MapView = () => {
   const { message } = AntdApp.useApp();
@@ -58,6 +52,15 @@ export const MapView = () => {
     enabled: renderMode === 'polygon',
   });
 
+  const {
+    visibleZoneTypes,
+    selectedZone,
+    selectZone,
+    clearZone,
+    handleWmsMapClick,
+    pendingPosition,
+  } = useAirspaceMapInteraction({ renderMode, visibility: airspaceVisibility });
+
   const [mapCenter, setMapCenter] = useState(DEFAULT_CENTER);
   // "현재위치로 이동"은 kakaoMapInstance.panTo()로 명령형 호출한다. react-kakao-maps-sdk의
   // Map은 center prop의 lat/lng 값이 실제로 바뀔 때만 지도를 움직이는 값 비교 방식이라,
@@ -68,28 +71,6 @@ export const MapView = () => {
   // 최초 위치 조회가 끝난 시점에 한 번만 지도 중심을 맞추기 위한 플래그.
   // (이후 "현재위치 재조회"로 currentPosition이 바뀌어도 지도가 따라 움직이지 않도록 함)
   const hasSetInitialCenterRef = useRef(false);
-
-  const filteredZoneTypes = useMemo(
-    () => getVisibleZoneTypes(airspaceVisibility),
-    [airspaceVisibility],
-  );
-  const visibleTypenames = useMemo(
-    () => getVisibleTypenames(airspaceVisibility),
-    [airspaceVisibility],
-  );
-  // WMS 모드의 숨김은 언마운트가 아니라 가시성 전환으로 한다. 폴리곤 복귀 시 Polygon 재생성 비용을
-  // 피하기 위함이다(#47).
-  const visibleZoneTypes = renderMode === 'wms' ? NO_VISIBLE_ZONE_TYPES : filteredZoneTypes;
-
-  // 안내 박스의 자동 닫힘 기준은 폴리곤 숨김과 분리한다. WMS 모드에서도 클릭 안내(#75)가 열려야 하므로
-  // 모드와 무관하게 범례 필터 기준(꺼진 종류만 닫힘)을 쓴다.
-  const { selectedZone, selectZone, clearZone } = useSelectedZone(filteredZoneTypes);
-  const { onMapClick: handleWmsMapClick, pendingPosition } = useWmsZoneClick({
-    enabled: renderMode === 'wms',
-    typenames: visibleTypenames,
-    selectZone,
-    clearZone,
-  });
 
   const panToPosition = ({ lat, lng }: MapPosition) => {
     kakaoMapInstance?.panTo(new kakao.maps.LatLng(lat, lng));
@@ -112,13 +93,6 @@ export const MapView = () => {
       // 실패하면 마커 상태를 바꾸지 않는다. 검색 마커가 떠 있다면 위치를 못 구했다는 이유로 지울 필요가 없다.
       onError: () => message.error('현재 위치를 가져오지 못했습니다.'),
     });
-
-  // 모드를 바꾸면 이전 모드에서 열린 안내는 의미가 없어 닫는다(예전에는 빈 Set 전달로 닫혔다).
-  // renderMode는 값이 아니라 "바뀐 시점"을 알리는 트리거로만 쓴다.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: renderMode 변경 자체가 실행 조건이다.
-  useEffect(() => {
-    clearZone();
-  }, [renderMode, clearZone]);
 
   useEffect(() => {
     if (hasResolvedInitial && !hasSetInitialCenterRef.current) {
