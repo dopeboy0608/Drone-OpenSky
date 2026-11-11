@@ -1,34 +1,18 @@
 import { CloseOutlined } from '@ant-design/icons';
-import { Button, Card, ConfigProvider, Tag, theme } from 'antd';
+import { Button, Card, ConfigProvider, theme } from 'antd';
 import { CustomOverlayMap } from 'react-kakao-maps-sdk';
 
+import { ZoneGuidanceBody } from '@/features/airspace/components/ZoneGuidanceBody';
 import { resolveFlightGuidance } from '@/features/airspace/utils/resolveFlightGuidance';
 
-import type { ZoneAddressState } from '@/features/airspace/types';
+import type { AddressState } from '@/types/address';
 
 interface AirspaceZoneOverlayProps {
   position: { lat: number; lng: number };
   zoneType: string | null;
-  address?: ZoneAddressState;
+  address?: AddressState;
   onClose: () => void;
 }
-
-const formatAddress = (address: ZoneAddressState): string | null => {
-  switch (address.status) {
-    case 'loading':
-      return '주소 조회 중…';
-    case 'success':
-      return address.address.secondary
-        ? `${address.address.primary} (${address.address.secondary})`
-        : address.address.primary;
-    case 'notFound':
-      return '주소를 찾지 못했습니다.';
-    case 'error':
-      return '주소를 불러오지 못했습니다.';
-    default:
-      return null;
-  }
-};
 
 // 닫기 버튼 호버 배경. antd token에 이보다 진한 단계가 없어 상수로 둔다.
 const HOVER_FILL = 'rgba(0, 0, 0, 0.25)';
@@ -40,8 +24,7 @@ export const AirspaceZoneOverlay = ({
   onClose,
 }: AirspaceZoneOverlayProps) => {
   const { token } = theme.useToken();
-  const guidance = resolveFlightGuidance(zoneType);
-  const addressText = formatAddress(address);
+  const { headline } = resolveFlightGuidance(zoneType);
 
   return (
     // 카카오 앵커(xAnchor/yAnchor)는 오버레이를 붙일 때 잰 콘텐츠 크기로 오프셋을 계산하고, 안내 박스가 열린 채
@@ -56,7 +39,7 @@ export const AirspaceZoneOverlay = ({
         <div className="absolute bottom-0 left-0 flex w-max -translate-x-1/2 flex-col items-center drop-shadow-[0_2px_6px_rgba(0,0,0,0.3)]">
           <Card
             size="small"
-            title={zoneType ?? guidance.headline}
+            title={zoneType ?? headline}
             extra={
               // filled 기본 배경(colorFillTertiary, 약 4%)이 지도 위에서 거의 안 보여 한 단계씩 진하게 올린다.
               // 버튼에만 적용되도록 이 서브트리 토큰만 바꾼다.
@@ -87,18 +70,7 @@ export const AirspaceZoneOverlay = ({
               body: { paddingTop: 0 },
             }}
           >
-            {/* 카드는 한 줄 폭(whitespace-nowrap)으로 펴지므로, 안내 문구만 최대 폭을 두어 줄바꿈한다. */}
-            <div className="flex max-w-[240px] flex-col gap-1 text-xs whitespace-normal">
-              {zoneType !== null && (
-                <div>
-                  <Tag color={guidance.tone} className="m-0">
-                    {guidance.headline}
-                  </Tag>
-                </div>
-              )}
-              <div>{guidance.detail}</div>
-              {addressText && <div className="text-gray-600">{addressText}</div>}
-            </div>
+            <ZoneGuidanceBody zoneType={zoneType} address={address} />
           </Card>
           {/* 테두리 삼각형으로 그려 끝점이 래퍼 바닥(클릭 좌표)에 정확히 놓이게 한다. 회전한 정사각형은 꼭짓점이 어긋난다.
           바깥(카드 테두리색)·안쪽(흰색) 삼각형을 겹쳐 꼬리에도 1px 테두리를 만들고, -mt-px로 카드 아랫변을 안쪽 삼각형이 덮어 이음새 선을 없앤다. */}

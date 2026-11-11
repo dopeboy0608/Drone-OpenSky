@@ -1,13 +1,8 @@
 import { useEffect, useState } from 'react';
 
-import { type ResolvedAddress, reverseGeocode } from '@/features/map/utils/reverseGeocode';
+import { reverseGeocode } from '@/features/map/utils/reverseGeocode';
 
-export type AddressState =
-  | { status: 'idle' }
-  | { status: 'loading' }
-  | { status: 'success'; address: ResolvedAddress }
-  | { status: 'notFound' }
-  | { status: 'error' };
+import type { AddressState } from '@/types/address';
 
 // 구역 판정과 독립적으로 조회한다. 주소 조회가 실패해도 안내 박스의 구역 정보는 그대로여야 하기 때문이다(#27).
 export const useAddressAtPosition = (

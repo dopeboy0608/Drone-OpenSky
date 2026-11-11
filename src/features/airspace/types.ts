@@ -29,12 +29,3 @@ export interface SelectedZone {
   // null이면 클릭 지점에 조회된 규제 구역이 없다는 뜻이다(#27).
   zoneType: string | null;
 }
-
-// 안내 박스가 보여 주는 주소 조회 상태. map feature의 훅이 같은 모양을 주지만, airspace가 map을 import하면
-// map→airspace와 순환하므로 구조만 맞춰 둔다.
-export type ZoneAddressState =
-  | { status: 'idle' }
-  | { status: 'loading' }
-  | { status: 'success'; address: { primary: string; secondary?: string; isRegionOnly?: boolean } }
-  | { status: 'notFound' }
-  | { status: 'error' };
