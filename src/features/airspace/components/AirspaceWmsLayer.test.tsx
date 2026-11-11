@@ -3,6 +3,7 @@ import { StrictMode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AirspaceWmsLayer } from '@/features/airspace/components/AirspaceWmsLayer';
+import { WMS_TILE_SIZE } from '@/features/airspace/utils/buildWmsTileUrl';
 
 import { TYPENAME_ZONE_LABELS } from '@/features/airspace/constants';
 import {
@@ -26,6 +27,8 @@ const ALL_TYPENAMES = Object.keys(TYPENAME_ZONE_LABELS);
 type TilesetOptions = {
   urlFunc: (x: number, y: number, z: number) => string;
   errorTileUrl: string;
+  width: number;
+  height: number;
 };
 
 const getOptions = (name: string) =>
@@ -97,6 +100,14 @@ describe('AirspaceWmsLayer', () => {
 
     expect(() => render(<AirspaceWmsLayer />)).not.toThrow();
     expect(addedNames().sort()).toEqual(SLOT_NAMES);
+  });
+
+  it('Tileset 타일 크기는 WMS 요청 크기(WMS_TILE_SIZE)와 같다', () => {
+    render(<AirspaceWmsLayer />);
+
+    SLOT_NAMES.forEach((name) => {
+      expect(getOptions(name)).toMatchObject({ width: WMS_TILE_SIZE, height: WMS_TILE_SIZE });
+    });
   });
 
   it('에러 타일은 유효한 1px GIF data URL이다', () => {

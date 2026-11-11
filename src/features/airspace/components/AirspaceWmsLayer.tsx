@@ -2,14 +2,13 @@ import { useEffect, useMemo } from 'react';
 import { useMap } from 'react-kakao-maps-sdk';
 
 import { useAirspaceFilterStore } from '@/features/airspace/store/airspaceFilterStore';
-import { buildWmsTileUrl } from '@/features/airspace/utils/buildWmsTileUrl';
+import { WMS_TILE_SIZE, buildWmsTileUrl } from '@/features/airspace/utils/buildWmsTileUrl';
 import { chunkTypenames } from '@/features/airspace/utils/chunkTypenames';
 import { getVisibleTypenames } from '@/features/airspace/utils/getVisibleTypenames';
 import { getWmsTileBbox } from '@/features/airspace/utils/getWmsTileBbox';
 
 import { TYPENAME_ZONE_LABELS } from '@/features/airspace/constants';
 
-const TILE_SIZE = 256;
 // VWorld WMS는 LAYERS를 요청당 4개까지만 받는다(5개 이상이면 INVALID_RANGE 오류 XML이 와서 타일이 전부 실패한다).
 // 국토부 원스톱이 레이어별로 따로 요청해 겹쳐 보여 주는 것도 같은 제약 때문이다.
 const MAX_LAYERS_PER_REQUEST = 4;
@@ -41,8 +40,8 @@ const registerWmsTileset = (slot: number) => {
   }
 
   const tileset = new kakao.maps.Tileset({
-    width: TILE_SIZE,
-    height: TILE_SIZE,
+    width: WMS_TILE_SIZE,
+    height: WMS_TILE_SIZE,
     // Tileset은 SDK 전역에 슬롯당 한 번만 등록되고 이름이 같으면 다시 add할 수 없어서, 필터 상태를 클로저로
     // 캡처하지 않고 타일을 요청하는 시점마다 읽는다.
     urlFunc: (x, y, z) => {

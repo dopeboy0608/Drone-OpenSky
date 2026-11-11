@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildWmsTileUrl } from '@/features/airspace/utils/buildWmsTileUrl';
+import { WMS_TILE_SIZE, buildWmsTileUrl } from '@/features/airspace/utils/buildWmsTileUrl';
 
 const bbox = { minX: 1, minY: 2, maxX: 3, maxY: 4 };
 
@@ -20,6 +20,13 @@ describe('buildWmsTileUrl', () => {
       CRS: 'EPSG:3857',
       key: 'K',
     });
+  });
+
+  it('WIDTH와 HEIGHT는 공유 상수 WMS_TILE_SIZE와 같다 (카카오 Tileset 크기와 어긋나지 않게)', () => {
+    const url = new URL(buildWmsTileUrl({ bbox, typenames: ['a'], key: 'K' }));
+
+    expect(url.searchParams.get('WIDTH')).toBe(String(WMS_TILE_SIZE));
+    expect(url.searchParams.get('HEIGHT')).toBe(String(WMS_TILE_SIZE));
   });
 
   it('LAYERS와 STYLES에 같은 typename 목록을 쉼표로 이어 넣는다', () => {
