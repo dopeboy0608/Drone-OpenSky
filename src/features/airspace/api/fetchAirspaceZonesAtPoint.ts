@@ -8,8 +8,10 @@ const POINT_BBOX_HALF_SIZE_DEG = 0.0001;
 export const fetchAirspaceZonesAtPoint = async (
   typename: string,
   { lat, lng }: { lat: number; lng: number },
+  signal?: AbortSignal,
 ): Promise<VWorldFeatureCollection> => {
   const response = await vworldClient.get<VWorldFeatureCollection>('/wfs', {
+    signal,
     params: {
       SERVICE: 'WFS',
       REQUEST: 'GetFeature',

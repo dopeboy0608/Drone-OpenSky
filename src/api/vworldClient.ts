@@ -41,7 +41,10 @@ vworldClient.interceptors.response.use(
     return response;
   },
   (error) => {
-    console.error('[vworldClient]', error);
+    // 새 클릭으로 요청을 일부러 끊은 경우(AbortController)는 오류가 아니라서 콘솔을 어지럽히지 않는다.
+    if (!axios.isCancel(error)) {
+      console.error('[vworldClient]', error);
+    }
     return Promise.reject(error);
   },
 );
