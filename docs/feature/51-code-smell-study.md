@@ -14,26 +14,27 @@
 
 ## 요약 표
 
-| #   | 상태       | 스멜                                           | 증상 한 줄                                                                   | 적용한 패턴                                                                            |
-| --- | ---------- | ---------------------------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| P1  | 적용       | 중복 코드(같은 사실의 이중 정의) + 암묵적 결합 | 같은 12종을 두 구조로 정의하고, 키 순서가 숨은 의미를 가진다                 | Single Source of Truth, Replace Derived Variable with Query                            |
-| P2  | 적용       | 중복 코드                                      | "켜진 typename" 판정식이 두 함수에 복사되어 있다                             | Extract Function(재사용), 합성                                                         |
-| P3  | 적용       | 중복 코드(매직 넘버) + 암묵적 결합             | 타일 크기 256이 두 파일에 따로 있고, 서로 같아야 한다는 사실이 코드에 없다   | Extract 공유 상수, 제약을 테스트로 고정                                                |
-| P4  | 적용       | 중복 코드                                      | 전국 조회와 클릭 지점 조회가 WFS 요청 파라미터를 복사해 쓴다                 | Extract Function                                                                       |
-| P5  | 적용       | 긴 함수 / 변경 이유가 여럿                     | 쿼리 훅 하나가 정책, 토스트, 새로고침 분기, 안내문을 모두 가진다             | Extract Function, Extract Hook, Decompose Conditional, Replace Conditional with Lookup |
-| P6  | 적용       | 긴 함수(합성 지점 컴포넌트)                    | MapView 안에 긴 인라인 핸들러와 중복된 panTo가 있다 (a만 적용)               | Extract Function, (b) Extract Hook                                                     |
-| P7  | 적용       | 테스트하기 어려운 구조 + 주석 누적             | 부팅 코드가 모듈 최상단 부수효과라 테스트할 수 없고, 주석이 이어 붙어 있다   | Extract Function, 별칭 통일                                                            |
-| P8  | 보류       | 변경 이유가 여럿                               | WMS 레이어 파일이 SDK 등록 규칙과 컴포넌트를 함께 가진다                     | Extract Module                                                                         |
-| P9  | 보류       | 긴 함수                                        | findZoneTypeAtPoint가 취소 연결, 병렬 요청, 우선순위 소비를 한 함수에서 한다 | Extract Function                                                                       |
-| P10 | 보류       | 긴 콜백, 흩어진 보조 상태                      | "마지막 요청만 반영" 장치가 useWmsZoneClick 안에 흩어져 있다                 | Extract Hook                                                                           |
-| P11 | 보류       | 중복(사소)                                     | 토스트 지속 시간 상수와 개발 모드 판정이 여러 곳에 있다                      | Extract Variable                                                                       |
-| D1  | 제안 안 함 | 전역 객체 의존                                 | 순수 기하 함수가 전역 kakao 객체에 의존한다                                  | Split Phase                                                                            |
-| D2  | 제안 안 함 | 원시값 집착                                    | typename이 그냥 문자열이다                                                   | Replace Primitive with Object / Branded Type                                           |
-| D3  | 제안 안 함 | 의미가 헷갈리는 이름                           | 이름이 비슷해 헷갈리는 두 상수                                               | Change Function Declaration (개명)                                                     |
-| D4  | 제안 안 함 | 중복(아직 두 곳)                               | 두 메뉴 컴포넌트의 팝오버 버튼 구조가 같다                                   | Extract Component                                                                      |
-| D5  | 제안 안 함 | 조회와 변경이 섞임                             | readZoneCache가 읽기와 삭제를 함께 한다                                      | Separate Query from Modifier                                                           |
+| #   | 상태       | 스멜                                           | 증상 한 줄                                                                         | 적용한 패턴                                                                            |
+| --- | ---------- | ---------------------------------------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| P1  | 적용       | 중복 코드(같은 사실의 이중 정의) + 암묵적 결합 | 같은 12종을 두 구조로 정의하고, 키 순서가 숨은 의미를 가진다                       | Single Source of Truth, Replace Derived Variable with Query                            |
+| P2  | 적용       | 중복 코드                                      | "켜진 typename" 판정식이 두 함수에 복사되어 있다                                   | Extract Function(재사용), 합성                                                         |
+| P3  | 적용       | 중복 코드(매직 넘버) + 암묵적 결합             | 타일 크기 256이 두 파일에 따로 있고, 서로 같아야 한다는 사실이 코드에 없다         | Extract 공유 상수, 제약을 테스트로 고정                                                |
+| P4  | 적용       | 중복 코드                                      | 전국 조회와 클릭 지점 조회가 WFS 요청 파라미터를 복사해 쓴다                       | Extract Function                                                                       |
+| P5  | 적용       | 긴 함수 / 변경 이유가 여럿                     | 쿼리 훅 하나가 정책, 토스트, 새로고침 분기, 안내문을 모두 가진다                   | Extract Function, Extract Hook, Decompose Conditional, Replace Conditional with Lookup |
+| P6  | 적용       | 긴 함수(합성 지점 컴포넌트)                    | MapView 안에 긴 인라인 핸들러와 중복된 panTo가 있고, airspace 세부를 직접 조립한다 | Extract Function, (b) Extract Hook                                                     |
+| P7  | 적용       | 테스트하기 어려운 구조 + 주석 누적             | 부팅 코드가 모듈 최상단 부수효과라 테스트할 수 없고, 주석이 이어 붙어 있다         | Extract Function, 별칭 통일                                                            |
+| P8  | 적용       | 변경 이유가 여럿                               | WMS 레이어 파일이 SDK 등록 규칙과 컴포넌트를 함께 가진다                           | Extract Module                                                                         |
+| P9  | 적용       | 긴 함수                                        | findZoneTypeAtPoint가 취소 연결, 병렬 요청, 우선순위 소비를 한 함수에서 한다       | Extract Function                                                                       |
+| P10 | 적용       | 긴 콜백, 흩어진 보조 상태                      | "마지막 요청만 반영" 장치가 useWmsZoneClick 안에 흩어져 있다                       | Extract Hook                                                                           |
+| P11 | 적용       | 중복(사소)                                     | 토스트 지속 시간 상수와 개발 모드 판정이 여러 곳에 있다                            | Extract Variable                                                                       |
+| F1  | 후속 과제  | 의도를 적은 주석을 코드가 지키지 않음          | 클릭 조회 중에 모드를 바꾸면 결과가 뒤늦게 반영된다 (주석과 코드의 불일치)         | Characterization Test로 확인 후 별도 수정                                              |
+| D1  | 제안 안 함 | 전역 객체 의존                                 | 순수 기하 함수가 전역 kakao 객체에 의존한다                                        | Split Phase                                                                            |
+| D2  | 제안 안 함 | 원시값 집착                                    | typename이 그냥 문자열이다                                                         | Replace Primitive with Object / Branded Type                                           |
+| D3  | 제안 안 함 | 의미가 헷갈리는 이름                           | 이름이 비슷해 헷갈리는 두 상수                                                     | Change Function Declaration (개명)                                                     |
+| D4  | 제안 안 함 | 중복(아직 두 곳)                               | 두 메뉴 컴포넌트의 팝오버 버튼 구조가 같다                                         | Extract Component                                                                      |
+| D5  | 제안 안 함 | 조회와 변경이 섞임                             | readZoneCache가 읽기와 삭제를 함께 한다                                            | Separate Query from Modifier                                                           |
 
-적용 7개, 보류 4개(위험이 중간이거나 가치가 작아 이번에 하지 않음), 제안 안 함 5개(호환성이나 "세 번 규칙" 때문에 일부러 하지 않음).
+적용 11개(P1–P11), 제안 안 함 5개(호환성이나 "세 번 규칙" 때문에 일부러 하지 않음), 후속 과제 1개(리팩터링 중 발견한 잠재 결함, 동작 변경이라 별도 수정).
 
 ## 스멜이 생기는 다섯 가지 원인
 
@@ -54,7 +55,8 @@
 3. **호환은 "추가와 위임"으로 지킨다** — 기존 export는 그대로 두고 새 파일을 추가해 위임했다. 호출부와 `vi.mock` 경로를 건드리지 않았다. 적용 후 export 이름 목록을 전후로 비교해 확인했다.
 4. **테스트가 못 닿는 곳은 다른 수단으로 확인한다** — 진입점과 별칭은 단위 테스트로 번들러 동작을 증명하지 못해 `pnpm build`를 함께 돌렸다.
 5. **검사 도구의 한계를 안다** — 이전 단계(`code-organizer`)에서 "변경 전후 줄 집합이 같다"는 검사가 이펙트를 중간에서 자르는 편집 오류를 못 잡았고, 테스트와 린트가 잡았다. 한 가지 검사에 기대지 않는다.
-6. **하지 않는 판단도 기록한다** — 공개 타입 변경, 개명, 세 번 규칙에 못 미치는 중복은 제안하지 않았다. 이유를 남기면 나중에 다시 판단할 수 있다.
+6. **주석이 참인지 의심되면 프로브로 확인한다** — 코드를 옮기다 "모드를 바꾸면 끊는다"는 주석이 의심스러워 임시 테스트로 원본과 현재를 비교했다. 둘 다 언마운트에서만 끊어 주석이 틀렸음을 확인했고, 동작은 바꾸지 않고 후속 과제로 남겼다.
+7. **하지 않는 판단도 기록한다** — 공개 타입 변경, 개명, 세 번 규칙에 못 미치는 중복은 제안하지 않았다. 이유를 남기면 나중에 다시 판단할 수 있다.
 
 ## 항목별 상세
 
@@ -90,7 +92,7 @@ export const TYPENAME_ZONE_LABELS: Record<string, string> = {
 **원인**
 
 - 구역 세분화 기능(#33)에서 기존 "그룹" 구조 옆에 라벨 맵이 덧붙었다. 각자 필요해서 따로 선언했고, 서로를 파생시킬 이유가 그때는 보이지 않았다.
-- 나중에 WMS 기능(#72~#75)이 "객체 키 순서 = 우선순위"라는 성질을 읽어 쓰기 시작했다. 그 의미는 주석에만 있었고 구조로는 표현되지 않았다.
+- 나중에 WMS 기능(#72–#75)이 "객체 키 순서 = 우선순위"라는 성질을 읽어 쓰기 시작했다. 그 의미는 주석에만 있었고 구조로는 표현되지 않았다.
 
 **무엇이 위험한가**
 
@@ -329,7 +331,7 @@ useZoneErrorToasts(results, message);
 
 **배운 점**: 같은 조건으로 값을 여러 개 고르고 있으면 "정책 객체" 하나로 묶는다. 한 함수가 변경 이유를 여러 개 가질 때(옵션, 알림, 새로고침) 이유별로 나눈다.
 
-### P6. MapView 안에 긴 인라인 핸들러와 중복된 panTo가 있다 (a만 적용)
+### P6. MapView 안에 긴 인라인 핸들러와 중복된 panTo가 있고, airspace 세부를 직접 조립한다
 
 - **상태**: 적용
 - **스멜**: Long Function (긴 함수(합성 지점 컴포넌트))
@@ -352,7 +354,7 @@ useZoneErrorToasts(results, message);
 
 **원인**
 
-- 지도 위 기능이 하나씩 붙었다(주소 검색 #26, 현재 위치 #35~#39, 표시 방식 #71, 클릭 안내 #75). 컴포넌트는 각 기능을 연결하는 자리라 JSX에 짧은 핸들러가 계속 인라인으로 추가됐다.
+- 지도 위 기능이 하나씩 붙었다(주소 검색 #26, 현재 위치 #35–#39, 표시 방식 #71, 클릭 안내 #75). 컴포넌트는 각 기능을 연결하는 자리라 JSX에 짧은 핸들러가 계속 인라인으로 추가됐다.
 
 **무엇이 위험한가**
 
@@ -360,15 +362,20 @@ JSX가 길어져 레이아웃과 동작이 한 덩어리가 된다. 같은 `panT
 
 **개선 방안**
 
-(a) 핸들러를 이름 있는 함수로 빼고 `panToPosition`으로 중복을 없앴다. (b) 필터·선택·클릭을 하나의 훅으로 옮기는 안은 위험이 중간이라 이번에는 하지 않았다.
+(a) 핸들러를 이름 있는 함수로 빼고 `panToPosition`으로 중복을 없앴다. (b) 범례 필터, 구역 안내 선택, 지도 클릭, 모드 전환 시 닫기를 `useAirspaceMapInteraction` 훅으로 옮겨 `MapView`가 airspace의 세부를 직접 조립하지 않게 했다. `MapView`의 props와 export는 그대로다.
 
 **After**
 
 ```ts
+// (b) MapView는 airspace 훅 하나만 호출한다
+const { visibleZoneTypes, selectedZone, selectZone, clearZone, handleWmsMapClick, pendingPosition } =
+  useAirspaceMapInteraction({ renderMode, visibility: airspaceVisibility });
+
+// (a) 핸들러 추출
 const panToPosition = ({ lat, lng }: MapPosition) => {
   kakaoMapInstance?.panTo(new kakao.maps.LatLng(lat, lng));
 };
-const handleSelectCandidate = ({ lat, lng }: SearchCandidate) => { /* 주석 보존 */
+const handleSelectCandidate = ({ lat, lng }: SearchCandidate) => {
   hasSetInitialCenterRef.current = true;
   panToPosition({ lat, lng });
   showSearchMarker({ lat, lng });
@@ -376,11 +383,11 @@ const handleSelectCandidate = ({ lat, lng }: SearchCandidate) => { /* 주석 보
 <AddressSearch onSelectCandidate={handleSelectCandidate} />
 ```
 
-**결과**: (a) 적용, (b) 보류. `MapView.test`가 두 핸들러의 `panTo` 호출을 이미 검증하고 있어 그대로 통과했다.
+**결과**: (a)와 (b) 모두 적용. 팬아웃은 (a) 뒤에 오히려 20 → 21로 늘었다가(핸들러에 쓰는 타입 import가 추가됨) (b) 뒤에 18로 줄었다. map → airspace import는 15 → 12. 새 훅 테스트 +5.
 
-**검증**: 기존 `MapView.test` 통과.
+**검증**: 기존 `MapView.test`가 그대로 통과, 새 훅의 테스트 5개(보이는 구역, WMS 모드의 안정된 빈 Set, 모드 전환 시 닫기, 범례 해제 시 닫기, WMS 모드에서만 조회).
 
-**배운 점**: 합성 컴포넌트는 커지기 쉽다. 먼저 위험이 낮은 "이름 붙이기"부터 하고, 구조를 옮기는 큰 변경은 따로 승인받아 나눠서 한다.
+**배운 점**: 합성 컴포넌트는 커지기 쉽다. 이름 붙이기만으로는 의존 수가 줄지 않았고(오히려 +1), 책임을 옮겨야 줄었다. 개선은 느낌이 아니라 팬아웃 같은 숫자로 확인한다.
 
 ### P7. 부팅 코드가 모듈 최상단 부수효과라 테스트할 수 없고, 주석이 이어 붙어 있다
 
@@ -436,7 +443,7 @@ if (rootEl) {
 
 ### P8. WMS 레이어 파일이 SDK 등록 규칙과 컴포넌트를 함께 가진다
 
-- **상태**: 보류
+- **상태**: 적용
 - **스멜**: Divergent Change (변경 이유가 여럿)
 - **대상**: `features/airspace/components/AirspaceWmsLayer.tsx`
 - **패턴**: Extract Module
@@ -461,21 +468,30 @@ if (rootEl) {
 
 **개선 방안**
 
-등록·슬롯 규칙을 `utils/wmsTilesets.ts`로 옮기고 컴포넌트는 이펙트만 남긴다. 파일이 늘고 이동이 일어나는 변경이라 효과 대비 이득이 작아 이번에는 하지 않았다.
+등록·슬롯 규칙(`registerWmsTileset`, `getRegisteredMapTypeId`, `SLOT_INDEXES`, `MAX_LAYERS_PER_REQUEST`)을 `utils/wmsTilesets.ts`로 옮겼다. 컴포넌트는 필터가 바뀔 때 오버레이를 뗐다 붙이는 이펙트만 가진다.
 
 **After**
 
 ```ts
-// 제안: utils/wmsTilesets.ts 에서 MAX_LAYERS_PER_REQUEST, SLOT_INDEXES, registerWmsTileset 등을 export
+// AirspaceWmsLayer.tsx
+import {
+  MAX_LAYERS_PER_REQUEST,
+  SLOT_INDEXES,
+  getRegisteredMapTypeId,
+  registerWmsTileset,
+} from '@/features/airspace/utils/wmsTilesets';
+// utils/wmsTilesets.ts: 위 네 심볼을 export
 ```
 
-**결과**: 보류(선택 항목). 위험은 낮다.
+**결과**: 적용. 컴포넌트 파일은 이펙트만 남고, 전역 SDK 등록과 슬롯 규칙은 `utils/wmsTilesets.ts`로 옮겼다. 컴포넌트 export와 동작은 그대로다.
 
-**배운 점**: 스멜이 있어도 "읽는 데 실제로 방해되는가"와 변경 비용을 비교해 우선순위를 정한다.
+**검증**: `AirspaceWmsLayer` 테스트(필터 반영, 슬롯 분할, 오버레이 재부착)가 그대로 통과. 이 테스트는 SDK만 모킹하고 이동한 함수 경로를 모킹하지 않아 영향이 없었다.
+
+**배운 점**: 처음에는 가치가 작다고 보류했지만, 순수한 이동은 위험이 낮아 마지막에 함께 했다. 위험과 가치를 매번 다시 재 본다.
 
 ### P9. findZoneTypeAtPoint가 취소 연결, 병렬 요청, 우선순위 소비를 한 함수에서 한다
 
-- **상태**: 보류
+- **상태**: 적용
 - **스멜**: Long Function (긴 함수)
 - **대상**: `features/airspace/api/findZoneTypeAtPoint.ts`
 - **패턴**: Extract Function
@@ -500,21 +516,30 @@ if (rootEl) {
 
 **개선 방안**
 
-`linkAbortSignals`, `startPointQueries`, `pickByPriority`로 나눈다. 취소 순서는 미묘해서 위험이 중간이다. 테스트 17케이스가 있어 안전망은 있지만 이번 1차에서는 제외했다.
+`linkAbortSignals(outer)`가 바깥 취소와 안쪽 취소를 하나의 신호로 합치고, `startPointQueries`가 요청을 동시에 시작하며 settle로 감싼다. `findZoneTypeAtPoint` 본문은 우선순위 순서로 결과를 확인하는 일만 한다.
 
 **After**
 
 ```ts
-// 제안: 세 개의 작은 함수와 이를 조합하는 본문
+const linked = linkAbortSignals(signal);
+const settled = startPointQueries(point, typenames, linked.signal);
+try {
+  /* 우선순위 순서로 await, 확정되면 조기 반환 */
+} finally {
+  linked.abort();
+  linked.dispose();
+}
 ```
 
-**결과**: 보류.
+**결과**: 적용. 취소 연결(`linkAbortSignals`)과 요청 시작(`startPointQueries`)을 함수로 뺐다. 본문은 우선순위 순서 소비만 남는다.
 
-**배운 점**: 비동기 취소처럼 타이밍이 중요한 코드는 구조 변경 위험이 높으므로 안전망(테스트)을 충분히 확인한 뒤 따로 한다.
+**검증**: 기존 테스트 17케이스(MSW 13, 취소 4)가 그대로 통과했다. 취소 순서와 조기 확정 동작은 변하지 않았다.
+
+**배운 점**: 타이밍이 중요한 코드는 안전망(테스트 17케이스)을 먼저 확인하고 구조만 바꾼다. 그러면 위험하다고 보류한 일도 안전하게 할 수 있다.
 
 ### P10. "마지막 요청만 반영" 장치가 useWmsZoneClick 안에 흩어져 있다
 
-- **상태**: 보류
+- **상태**: 적용
 - **스멜**: Long Function / Temporary Field (긴 콜백, 흩어진 보조 상태)
 - **대상**: `features/airspace/hooks/useWmsZoneClick.ts`
 - **패턴**: Extract Hook
@@ -539,21 +564,27 @@ if (rootEl) {
 
 **개선 방안**
 
-`useLatestRequest`처럼 "새 요청 시작, 최신인지 확인" 훅으로 뺀다. 다른 곳에서 쓸 일이 아직 없어 이번에는 하지 않았다.
+`useLatestRequest`가 `begin()`을 돌려준다. `begin()`은 이전 요청을 취소하고 `{ signal, isLatest }`를 반환한다. 호출 쪽은 응답 뒤 `isLatest()`만 확인하면 된다.
 
 **After**
 
 ```ts
-// 제안: const { begin } = useLatestRequest(); const { isLatest, signal } = begin();
+const beginLatestRequest = useLatestRequest();
+// onMapClick 안에서
+const { signal, isLatest } = beginLatestRequest();
+const zoneType = await findZoneTypeAtPoint(point, typenames, signal);
+if (!isLatest()) return;
 ```
 
-**결과**: 보류.
+**결과**: 적용. 요청 ID와 AbortController 두 ref, 언마운트 시 취소를 `useLatestRequest`로 모았다. `useWmsZoneClick`의 반환 형태는 그대로다. 새 훅 테스트 +4.
 
-**배운 점**: 패턴이 한 곳에서만 쓰이면 서둘러 추상화하지 않는다(재사용이 생길 때).
+**검증**: 기존 `useWmsZoneClick` 테스트 10개와 새 훅 테스트 4개가 통과했다. 원본과 같은 동작임을 프로브로 확인했다(F1 참고).
+
+**배운 점**: 이 장치를 훅으로 빼니 테스트 가능한 단위가 생겼고(+4), 옮기는 과정에서 기존 주석과 코드가 어긋난 것을 발견했다. 추상화의 부수 효과로 코드를 다시 읽게 된다.
 
 ### P11. 토스트 지속 시간 상수와 개발 모드 판정이 여러 곳에 있다
 
-- **상태**: 보류
+- **상태**: 적용
 - **스멜**: Duplicated Code (사소함) (중복(사소))
 - **대상**: `useAirspaceZoneQueries.ts`, `useWmsZoneClick.ts`, `api/vworldClient.ts`
 - **패턴**: Extract Variable
@@ -578,17 +609,74 @@ const ERROR_TOAST_DURATION_SECONDS = 3; // 두 파일에 각각
 
 **개선 방안**
 
-공유 상수 파일로 합치거나 `isDevelopment` 변수로 뺀다. 가치가 작아 해당 파일을 건드릴 때 함께 한다.
+공유 상수 파일을 만들고 두 훅이 import한다. 개발 모드 판정은 모듈 상단의 변수로 뺐다.
 
 **After**
 
 ```ts
-// 제안: src/constants/toast.ts, const isDevelopment = import.meta.env.MODE === "development"
+// src/constants/toast.ts
+export const ERROR_TOAST_DURATION_SECONDS = 3;
+export const INFO_TOAST_DURATION_SECONDS = 2;
+// vworldClient.ts
+const isDevelopment = import.meta.env.MODE === 'development';
 ```
 
-**결과**: 보류.
+**결과**: 적용. `ERROR/INFO_TOAST_DURATION_SECONDS`를 `src/constants/toast.ts`로 모으고(CLAUDE.md에 정의된 공용 상수 디렉터리가 처음 생김), `vworldClient`의 `MODE` 비교를 `isDevelopment` 변수 하나로 합쳤다.
+
+**검증**: 기존 테스트 전체 통과. `vworldClient.test`는 test 모드만 다뤄 개발 모드 분기는 이전에도 직접 검증되지 않았다.
 
 **배운 점**: 사소한 중복은 그 파일을 다른 이유로 열 때 함께 정리한다. 일부러 새 파일을 만들 만큼은 아니다.
+
+### F1. 클릭 조회 중에 모드를 바꾸면 결과가 뒤늦게 반영된다 (주석과 코드의 불일치)
+
+- **상태**: 후속 과제
+- **스멜**: 주석과 코드의 불일치 → 잠재 결함 (의도를 적은 주석을 코드가 지키지 않음)
+- **대상**: `features/airspace/hooks/useLatestRequest.ts`, `features/airspace/hooks/useWmsZoneClick.ts`
+- **패턴**: Characterization Test로 확인 후 별도 수정
+
+**증상**
+
+원래 주석은 "모드를 바꾸거나 언마운트되면 진행 중인 조회를 끊는다"였지만 코드는 `[]` 의존성의 클린업이라 **언마운트에서만** 끊는다. 모드를 바꿔도 이미 나간 클릭 조회는 계속 진행되고 결과가 반영된다.
+
+**Before**
+
+```ts
+// 원본 주석
+// 모드를 바꾸거나 언마운트되면 진행 중인 조회를 끊는다.
+useEffect(
+  () => () => {
+    abortControllerRef.current?.abort();
+  },
+  [],
+); // 언마운트에서만 동작
+```
+
+**원인**
+
+- 클릭 지연 개선에서 요청 취소를 넣을 때 주석에는 의도(모드 전환 시 취소)를 적었지만 구현은 언마운트 정리만 했다. `enabled`가 바뀔 때의 처리는 빠졌다.
+
+**무엇이 위험한가**
+
+WMS 모드에서 구역을 클릭한 직후(응답 전)에 폴리곤 모드로 바꾸면, 뒤늦게 도착한 결과가 안내 박스를 연다. 모드 전환 시 안내 닫기 이펙트는 이미 지나간 뒤라 박스가 폴리곤 모드에 남을 수 있다.
+
+**개선 방안**
+
+`enabled`가 false가 되면 진행 중인 요청을 끊거나 결과를 무시하게 한다. 동작이 바뀌는 수정이라 이번 리팩터링(동작 불변)에서는 하지 않았다. 먼저 이 상황을 재현하는 실패 테스트를 쓰고 고친다.
+
+**After**
+
+```ts
+// 제안: enabled가 false가 되면 진행 중인 요청을 취소
+useEffect(() => {
+  if (!enabled) cancelInFlight();
+}, [enabled]);
+```
+
+**결과**: 코드는 고치지 않았다. 주석만 코드에 맞춰 "언마운트되면"으로 바로잡았고, 후속 과제로 기록했다. 원본(HEAD)과 리팩터링 후 코드 모두 같은 프로브에서 `selectZone`이 1회 호출됨을 확인했다.
+
+**검증**: 임시 프로브 테스트(커밋하지 않음)로 원본과 현재의 동작이 같음을 비교.
+
+**배운 점**: 주석은 코드가 약속을 지키는지 확인할 단서다. 코드를 옮기다 "이 주석이 참인가"가 의심되면 추측하지 말고 프로브로 확인하고, 동작을 바꾸는 수정은 리팩터링과 분리한다.
 
 ### D1. 순수 기하 함수가 전역 kakao 객체에 의존한다
 
@@ -815,7 +903,9 @@ readZoneCache: 읽기 → (실패 시) 삭제 → null
 
 ## 이 작업의 결과 (2026-11-11)
 
-- 적용: P1~P7 (P6은 (a)만). 보류 4개, 제안 안 함 5개.
-- 테스트 238개 → 251개(+13: 특성 테스트와 신규 동작 테스트). `pnpm lint`, `npx tsc --noEmit`, `prettier --check`, `pnpm build` 통과.
-- 공개 인터페이스: export 이름 목록을 전후로 비교해 제거·개명이 없음을 확인했다. 추가된 것은 `WMS_TILE_SIZE`(상수), `requestAirspaceFeatures`, `bootstrap`뿐이다.
-- 코드 변경은 커밋하지 않았다(요청 시에만 커밋).
+- 1차 적용: P1–P7 (P6은 핸들러 추출). 2차 적용: P6(b), P8–P11. 제안 안 함 5개, 후속 과제 1개(F1).
+- 테스트 238개 → 260개(+22: 특성 테스트와 신규 동작 테스트). `pnpm lint`, `npx tsc --noEmit`, `prettier --check`, `pnpm build` 통과.
+- 구조: `MapView` 팬아웃 20 → 18, `map → airspace` import 15 → 12. 프로덕션 파일 54 → 60, 순환 의존은 계속 없음.
+- 공개 인터페이스: export 이름 목록을 전후로 비교해 제거·개명이 없음을 확인했다. 추가된 export는 `WMS_TILE_SIZE`, `requestAirspaceFeatures`, `bootstrap`, `wmsTilesets`의 네 심볼, `useLatestRequest`, `useAirspaceMapInteraction`, 토스트 상수 2개다.
+- 항목별 커밋(P1–P11)으로 나눠 각 커밋이 단독으로 테스트와 타입 검사를 통과한다.
+- 발견: 리팩터링 중 `useWmsZoneClick`의 주석("모드를 바꾸면 끊는다")이 코드와 어긋나는 것을 확인했다(F1). 동작은 바꾸지 않고 기록만 했다.

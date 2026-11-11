@@ -315,28 +315,32 @@
 
 ## 12. `fowler-refactor` 적용 결과 (2026-11-11)
 
-제안서의 추천 1차 묶음을 적용했다: P1~P5, P6(a), P7. 위험이 중간인 P6(b), P9, P10과 선택 항목 P8, P11은 하지 않았다. 증상·원인·개선 방안·Before/After는 [`51-code-smell-study.md`](./51-code-smell-study.md)에 정리했다.
+제안서의 P1~~P11을 모두 적용했다(P6은 핸들러 추출과 훅 이동). 1차는 P1~~P7, 2차는 P6(b), P8~P11이다. 증상·원인·개선 방안·Before/After는 [`51-code-smell-study.md`](./51-code-smell-study.md)에 정리했다. 항목마다 커밋을 나눴고 각 커밋이 단독으로 테스트와 타입 검사를 통과한다.
 
 **구조 변화**
 
-- 새 파일: `src/bootstrap.tsx`(부팅 로직), `features/airspace/api/requestAirspaceFeatures.ts`(WFS 요청 공통 함수). `index.tsx`는 `bootstrap`만 호출한다.
-- `features/airspace/constants.ts`는 위험도 순서의 표 하나(`ZONE_TYPES`)에서 `AIRSPACE_ZONE_CONFIGS`와 `TYPENAME_ZONE_LABELS`를 파생한다(export 이름·값·순서 동일). §6의 "정의가 두 곳"과 "키 삽입 순서의 의미"는 구조로 해소됐고, 순서의 의미는 `constants.test.ts`가 고정한다.
-- `WMS_TILE_SIZE`가 `buildWmsTileUrl.ts`에서 export되어 Tileset 크기와 WMS 요청 크기의 암묵적 결합(§6 "타일 크기")이 해소됐다.
-- `App.tsx`·`index.tsx`의 상대 경로 import를 `@/` 별칭으로 통일했다. 상대 경로 import는 이제 0개다.
+- 새 파일: `bootstrap.tsx`(부팅 로직), `constants/toast.ts`(공용 상수 디렉터리가 처음 생김), `features/airspace/api/requestAirspaceFeatures.ts`(WFS 요청 공통 함수), `features/airspace/utils/wmsTilesets.ts`(타일셋 등록·슬롯 규칙), `features/airspace/hooks/useLatestRequest.ts`("마지막 요청만 반영"), `features/airspace/hooks/useAirspaceMapInteraction.ts`(필터·선택·클릭 연결).
+- `constants.ts`는 위험도 순서의 표 하나(`ZONE_TYPES`)에서 `AIRSPACE_ZONE_CONFIGS`와 `TYPENAME_ZONE_LABELS`를 파생한다(export 이름·값·순서 동일). §6의 "정의가 두 곳"과 "키 삽입 순서의 의미"는 구조로 해소됐고, 순서의 의미는 `constants.test.ts`가 고정한다.
+- `WMS_TILE_SIZE`를 공유해 §6의 "타일 크기" 결합이 해소됐다. 쿼리 키 공유, 전역 `kakao`, 훅 밖 `getState()`, 싱글턴, 암묵적 저장소는 그대로다(이번 범위 밖).
+- `index.tsx`는 `bootstrap`만 호출한다. `App.tsx`·`index.tsx`의 상대 경로 import를 `@/` 별칭으로 통일해 상대 경로 import는 0개다.
+- `MapView`는 필터·선택·클릭 처리를 `useAirspaceMapInteraction` 하나로 호출한다. `findZoneTypeAtPoint`는 `linkAbortSignals`·`startPointQueries`로, `useAirspaceZoneQueries`는 `getCachePolicy`·`useZoneErrorToasts`·`formatFreshMessage`로 분해했다.
 
 **적용 후 수치** (적용 전 → 후)
 
-| 항목                  | 적용 전    | 적용 후           |
-| --------------------- | ---------- | ----------------- |
-| 프로덕션 파일 / 줄    | 54 / 2,432 | 56 / 2,474        |
-| 테스트 파일 / 줄      | 39 / 3,781 | 42 / 4,024        |
-| 테스트 개수           | 238        | 251               |
-| 순환 의존             | 없음       | 없음              |
-| `MapView` 팬아웃      | 20         | **21**            |
-| 직접 테스트 없는 파일 | 9          | 7 (스크립트 기준) |
+| 항목                      | 적용 전    | 적용 후                      |
+| ------------------------- | ---------- | ---------------------------- |
+| 프로덕션 파일 / 줄        | 54 / 2,432 | 60 / 2,553                   |
+| 테스트 파일 / 줄          | 39 / 3,781 | 44 / 4,161                   |
+| 테스트 개수               | 238        | 260                          |
+| 순환 의존                 | 없음       | 없음                         |
+| `MapView` 팬아웃          | 20         | **18**                       |
+| `map` → `airspace` import | 15         | **12**                       |
+| 직접 테스트 없는 파일     | 9          | 9 (스크립트 기준, 아래 참고) |
 
 **정직하게 적을 점**
 
-- `MapView`의 팬아웃은 줄지 않고 1 늘었다. P6(a)가 핸들러에 쓰는 `MapPosition`·`SearchCandidate` 타입 import를 추가했기 때문이다. 팬아웃을 실제로 줄이는 것은 보류한 P6(b)(필터·선택·클릭을 airspace 훅으로 이동)다.
-- "직접 테스트 없음"이 9개에서 7개로 준 것은 `fetchAirspaceZones`(특성 테스트 추가)와 `App.tsx`가 새 테스트에서 참조되기 때문인데, `App.tsx`는 `bootstrap.test`에서 **모킹만** 되므로 실질적으로는 여전히 검증되지 않는다. 새 `requestAirspaceFeatures.ts`는 직접 테스트 없이 `fetchAirspaceZones.test`를 통해 간접적으로 검증된다.
-- 공개 인터페이스: export 이름 목록을 전후로 비교해 제거·개명이 없음을 확인했다. 추가된 export는 `WMS_TILE_SIZE`, `requestAirspaceFeatures`, `bootstrap`이다.
+- `MapView` 팬아웃은 1차(P6 핸들러 추출) 뒤 오히려 21로 늘었다(핸들러에 쓰는 타입 import 추가). 2차에서 책임을 `useAirspaceMapInteraction`으로 옮긴 뒤에야 18로 줄었다. 이름 붙이기만으로는 의존이 줄지 않았다.
+- "직접 테스트 없음"이 그대로 9개인 이유: 일부(`fetchAirspaceZones`)는 특성 테스트로 해소됐지만, 새로 만든 파일 중 `constants/toast.ts`, `requestAirspaceFeatures.ts`, `wmsTilesets.ts`는 이를 쓰는 기존 테스트로 간접 검증될 뿐 직접 테스트가 없다. `App.tsx`는 `bootstrap.test`에서 모킹만 되어 스크립트 목록에서는 빠지지만 실질적으로 미검증이다. 여전히 직접 테스트가 없는 기존 파일: `AirspacePolygon`, `AirspaceRenderModeMenu`, `MapControls`, `useDebouncedValue`, `MapPage`, `router`.
+- 공개 인터페이스: export 이름 목록을 전후로 비교해 제거·개명이 없음을 확인했다. 추가된 export는 `WMS_TILE_SIZE`, `requestAirspaceFeatures`, `bootstrap`, `wmsTilesets`의 네 심볼, `useLatestRequest`, `useAirspaceMapInteraction`, 토스트 상수 2개다.
+- 후속 과제(F1): `useWmsZoneClick`의 원래 주석은 "모드를 바꾸거나 언마운트되면 조회를 끊는다"였지만 코드는 언마운트에서만 끊는다. 프로브로 원본과 현재가 같은 동작임을 확인했고, 동작을 바꾸는 수정이라 이번에는 고치지 않았다(주석만 코드에 맞췄다).
+- 묶음 간 직접 연결(`MapView`를 거치지 않는 것): §9의 **5개에서 8개로 늘었다.** 책임이 `MapView`에서 airspace 안으로 이동하면서 airspace 내부 묶음 사이의 연결이 드러났기 때문이다. 현재의 8개: 캐시·부팅→라우팅(`App`→`router`), 폴리곤→WMS 클릭(`fetchAirspaceZones`→`requestAirspaceFeatures`), WMS 타일→범례(`AirspaceWmsLayer`·`wmsTilesets`→`airspaceFilterStore`), WMS 클릭→범례(`useAirspaceMapInteraction`→`getVisibleZoneTypes`, 표시 방식 스토어), WMS 클릭→WMS 타일(`useAirspaceMapInteraction`→`getVisibleTypenames`), 캐시·부팅→폴리곤(`useAirspaceZoneQueries`→`fetchAirspaceZones`·`tagFeatureZoneType`), 범례→WMS 타일(`getVisibleZoneTypes`→`getVisibleTypenames`, P2로 생김), 라우팅→지도(`MapPage`→`MapView`). `MapView`의 팬아웃과 map→airspace import는 줄었지만, 전체 결합이 줄었다고 말할 수는 없다. 결합의 위치가 바뀌었다.
