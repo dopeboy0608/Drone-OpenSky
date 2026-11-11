@@ -52,11 +52,7 @@ export const useWmsZoneClick = ({
           return;
         }
 
-        if (zoneType === null) {
-          clearZone();
-          return;
-        }
-
+        // 구역이 없어도 안내를 연다. 닫기만 하면 "규제 없음"인지 클릭이 무시된 건지 알 수 없다(#27).
         selectZone({ position: point, zoneType });
       } catch (error) {
         if (!isLatest()) {

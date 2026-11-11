@@ -39,13 +39,19 @@ interface ServicesResponse {
 export const kakaoServicesMock = {
   placesResponse: { status: 'ZERO_RESULT', result: [] } as ServicesResponse,
   addressResponse: { status: 'ZERO_RESULT', result: [] } as ServicesResponse,
+  coord2AddressResponse: { status: 'ZERO_RESULT', result: [] } as ServicesResponse,
+  coord2RegionResponse: { status: 'ZERO_RESULT', result: [] } as ServicesResponse,
   keywordSearchCalls: [] as string[],
   addressSearchCalls: [] as string[],
+  coord2AddressCalls: [] as { x: number; y: number }[],
   reset() {
     this.placesResponse = { status: 'ZERO_RESULT', result: [] };
     this.addressResponse = { status: 'ZERO_RESULT', result: [] };
+    this.coord2AddressResponse = { status: 'ZERO_RESULT', result: [] };
+    this.coord2RegionResponse = { status: 'ZERO_RESULT', result: [] };
     this.keywordSearchCalls = [];
     this.addressSearchCalls = [];
+    this.coord2AddressCalls = [];
   },
 };
 
@@ -64,6 +70,25 @@ class MockGeocoder {
   addressSearch(keyword: string, callback: (result: unknown[], status: ServicesStatus) => void) {
     kakaoServicesMock.addressSearchCalls.push(keyword);
     const { result, status } = kakaoServicesMock.addressResponse;
+    callback(result, status);
+  }
+
+  coord2Address(
+    x: number,
+    y: number,
+    callback: (result: unknown[], status: ServicesStatus) => void,
+  ) {
+    kakaoServicesMock.coord2AddressCalls.push({ x, y });
+    const { result, status } = kakaoServicesMock.coord2AddressResponse;
+    callback(result, status);
+  }
+
+  coord2RegionCode(
+    _x: number,
+    _y: number,
+    callback: (result: unknown[], status: ServicesStatus) => void,
+  ) {
+    const { result, status } = kakaoServicesMock.coord2RegionResponse;
     callback(result, status);
   }
 }

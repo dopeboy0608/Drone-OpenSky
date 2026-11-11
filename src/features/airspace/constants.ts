@@ -43,3 +43,8 @@ export const AIRSPACE_ZONE_LABELS: Record<AirspaceZoneConfig['level'], string> =
 export const TYPENAME_ZONE_LABELS: Record<string, string> = Object.fromEntries(
   ZONE_TYPES.map((zone) => [zone.typename, zone.label]),
 );
+
+// 한글 구역 라벨 → 레벨. 클릭 안내가 SelectedZone의 라벨만으로 금지/제한/가능 안내를 고르기 위한 것이다(#27).
+export const ZONE_LEVEL_BY_LABEL: Record<string, AirspaceZoneLevel> = Object.fromEntries(
+  ZONE_TYPES.map((zone) => [zone.label, zone.level]),
+);

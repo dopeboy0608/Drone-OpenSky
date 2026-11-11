@@ -56,14 +56,14 @@ describe('useWmsZoneClick', () => {
     expect(selectZone).toHaveBeenCalledWith({ position: POINT, zoneType: '비행금지구역' });
   });
 
-  it('구역이 없는 곳을 클릭하면 열려 있던 안내를 닫는다', async () => {
+  it('구역이 없는 곳을 클릭하면 "구역 없음" 안내를 연다 (닫기만 하면 클릭이 무시된 것처럼 보인다, #27)', async () => {
     server.use(http.get(WFS_URL, miss));
     const { result, selectZone, clearZone } = setup();
 
     await act(() => result.current.onMapClick(POINT));
 
-    expect(clearZone).toHaveBeenCalled();
-    expect(selectZone).not.toHaveBeenCalled();
+    expect(selectZone).toHaveBeenCalledWith({ position: POINT, zoneType: null });
+    expect(clearZone).not.toHaveBeenCalled();
   });
 
   it('WMS 모드가 아니면(enabled=false) 아무것도 하지 않는다', async () => {
@@ -130,8 +130,11 @@ describe('useWmsZoneClick', () => {
       await Promise.all([first, second]);
     });
 
-    await waitFor(() => expect(clearZone).toHaveBeenCalled());
-    expect(selectZone).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(selectZone).toHaveBeenCalledWith({ position: { lat: 2, lng: 2 }, zoneType: null }),
+    );
+    expect(selectZone).toHaveBeenCalledTimes(1);
+    expect(clearZone).not.toHaveBeenCalled();
   });
 
   describe('조회 중 표시 (pendingPosition)', () => {

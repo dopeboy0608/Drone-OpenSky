@@ -64,4 +64,65 @@ describe('AirspaceZoneOverlay 앵커', () => {
 
     expect(screen.getByText('관제권')).toBeDefined();
   });
+
+  describe('비행 안내와 주소 (#27)', () => {
+    const renderOverlay = (
+      zoneType: string | null,
+      address?: Parameters<typeof AirspaceZoneOverlay>[0]['address'],
+    ) =>
+      render(
+        <AirspaceZoneOverlay
+          position={{ lat: 37, lng: 127 }}
+          zoneType={zoneType}
+          address={address}
+          onClose={vi.fn()}
+        />,
+      );
+
+    it('구역 레벨에 맞는 안내를 보여 준다', () => {
+      renderOverlay('비행금지구역');
+
+      expect(screen.getByText('비행 금지 구역')).toBeDefined();
+    });
+
+    it('구역이 없으면 비행 가능이라고 단정하지 않고 참고용 안내를 보여 준다', () => {
+      renderOverlay(null);
+
+      expect(screen.getByText('조회된 규제 구역 없음')).toBeDefined();
+      expect(screen.getByText(/공식 확인/)).toBeDefined();
+      expect(screen.queryByText(/비행 가능/)).toBeNull();
+    });
+
+    it('주소를 도로명과 지번으로 보여 준다', () => {
+      renderOverlay('관제권', {
+        status: 'success',
+        address: { primary: '서울 중구 세종대로 110', secondary: '서울 중구 태평로1가 31' },
+      });
+
+      expect(screen.getByText('서울 중구 세종대로 110 (서울 중구 태평로1가 31)')).toBeDefined();
+    });
+
+    it('주소 조회 중과 실패 상태를 구역 안내와 함께 보여 준다', () => {
+      const { rerender } = renderOverlay('관제권', { status: 'loading' });
+      expect(screen.getByText('주소 조회 중…')).toBeDefined();
+
+      rerender(
+        <AirspaceZoneOverlay
+          position={{ lat: 37, lng: 127 }}
+          zoneType="관제권"
+          address={{ status: 'error' }}
+          onClose={vi.fn()}
+        />,
+      );
+
+      expect(screen.getByText('주소를 불러오지 못했습니다.')).toBeDefined();
+      expect(screen.getByText('비행 제한 구역')).toBeDefined();
+    });
+
+    it('주소 상태를 주지 않으면 주소 줄을 그리지 않는다', () => {
+      renderOverlay('관제권');
+
+      expect(screen.queryByText(/주소/)).toBeNull();
+    });
+  });
 });
