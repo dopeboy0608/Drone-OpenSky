@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { App as AntdApp } from 'antd';
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 import type { ReactNode } from 'react';
 import { describe, expect, it } from 'vitest';
 
@@ -86,5 +86,46 @@ describe('useAirspaceMapInteraction', () => {
 
     await act(() => wms.result.current.handleWmsMapClick({ lat: 5, lng: 5 }));
     expect(requests).toBeGreaterThan(0);
+  });
+
+  // 이슈 #94: WMS 클릭 직후(응답 전) 폴리곤 모드로 바꾸면 뒤늦게 도착한 결과가 안내 박스를 열던 문제.
+  it('WMS 클릭 조회 중에 폴리곤 모드로 바꾸면 뒤늦게 도착한 결과로 안내를 열지 않는다', async () => {
+    const square = [
+      [
+        [
+          [0, 0],
+          [10, 0],
+          [10, 10],
+          [0, 10],
+          [0, 0],
+        ],
+      ],
+    ];
+    server.use(
+      http.get(WFS_URL, async () => {
+        await delay(60);
+        return HttpResponse.json({
+          type: 'FeatureCollection',
+          features: [
+            {
+              type: 'Feature',
+              properties: {},
+              geometry: { type: 'MultiPolygon', coordinates: square },
+            },
+          ],
+        });
+      }),
+    );
+    const { result, rerender } = setup('wms');
+    let click: Promise<void> = Promise.resolve();
+    act(() => {
+      click = result.current.handleWmsMapClick({ lat: 5, lng: 5 });
+    });
+
+    rerender({ renderMode: 'polygon', visibility: createInitialVisibility() });
+    await act(() => click);
+
+    expect(result.current.selectedZone).toBeNull();
+    expect(result.current.pendingPosition).toBeNull();
   });
 });

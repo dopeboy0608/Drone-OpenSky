@@ -6,6 +6,13 @@ export const useLatestRequest = () => {
   const latestRequestIdRef = useRef(0);
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // 진행 중인 요청을 끊고, 이미 나간 요청이 최신으로 남지 않게 해서 늦게 도착한 결과도 무시하게 한다.
+  // 호출하는 쪽이 더는 결과를 쓸 수 없게 됐을 때(예: 비활성화)가 대상이다.
+  const cancel = useCallback(() => {
+    abortControllerRef.current?.abort();
+    latestRequestIdRef.current += 1;
+  }, []);
+
   // 언마운트되면 진행 중인 요청을 끊는다.
   useEffect(
     () => () => {
@@ -14,7 +21,7 @@ export const useLatestRequest = () => {
     [],
   );
 
-  return useCallback(() => {
+  const begin = useCallback(() => {
     abortControllerRef.current?.abort();
     latestRequestIdRef.current += 1;
     const requestId = latestRequestIdRef.current;
@@ -26,4 +33,6 @@ export const useLatestRequest = () => {
       isLatest: () => requestId === latestRequestIdRef.current,
     };
   }, []);
+
+  return { begin, cancel };
 };
