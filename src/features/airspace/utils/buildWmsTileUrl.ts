@@ -1,7 +1,8 @@
 import type { Bounds } from '@/features/airspace/utils/tileToWcongBounds';
 
 const VWORLD_WMS_URL = 'https://api.vworld.kr/req/wms';
-const TILE_SIZE = 256;
+// 카카오 Tileset의 타일 크기(AirspaceWmsLayer)와 같아야 한다. 다르면 서버가 그린 이미지가 타일 칸에 늘어나거나 줄어든다.
+export const WMS_TILE_SIZE = 256;
 
 interface BuildWmsTileUrlParams {
   bbox: Bounds;
@@ -19,8 +20,8 @@ export const buildWmsTileUrl = ({ bbox, typenames, key }: BuildWmsTileUrlParams)
     REQUEST: 'GetMap',
     FORMAT: 'image/png',
     TRANSPARENT: 'true',
-    WIDTH: String(TILE_SIZE),
-    HEIGHT: String(TILE_SIZE),
+    WIDTH: String(WMS_TILE_SIZE),
+    HEIGHT: String(WMS_TILE_SIZE),
     LAYERS: layers,
     STYLES: layers,
     CRS: 'EPSG:3857',

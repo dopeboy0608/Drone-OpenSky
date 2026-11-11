@@ -9,14 +9,16 @@ import axios from 'axios';
 // MSW가 가로챌 수 있다.
 const PRODUCTION_VWORLD_BASE_URL = 'https://server-eosin-five-92.vercel.app/api/vworld-api';
 
+const isDevelopment = import.meta.env.MODE === 'development';
+
 export const vworldClient = axios.create({
-  baseURL: import.meta.env.MODE === 'development' ? '/vworld-api' : PRODUCTION_VWORLD_BASE_URL,
+  baseURL: isDevelopment ? '/vworld-api' : PRODUCTION_VWORLD_BASE_URL,
 });
 
 vworldClient.interceptors.request.use((config) => {
   // 프로덕션은 Worker가 VWORLD_API_KEY를 서버 사이드에서 주입하므로 프론트엔드에서
   // key를 넘기지 않는다 (dev만 rsbuild 프록시를 거쳐 VWorld를 직접 호출하므로 필요).
-  if (import.meta.env.MODE === 'development') {
+  if (isDevelopment) {
     config.params = {
       ...config.params,
       key: import.meta.env.VITE_VWORLD_API_KEY,

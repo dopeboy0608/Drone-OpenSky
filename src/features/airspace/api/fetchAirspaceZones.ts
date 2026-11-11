@@ -1,18 +1,7 @@
-import { vworldClient } from '@/api/vworldClient';
+import { requestAirspaceFeatures } from '@/features/airspace/api/requestAirspaceFeatures';
+
 import { KOREA_BBOX } from '@/features/airspace/constants';
 import type { VWorldFeatureCollection } from '@/features/airspace/types';
 
-export const fetchAirspaceZones = async (typename: string): Promise<VWorldFeatureCollection> => {
-  const response = await vworldClient.get<VWorldFeatureCollection>('/wfs', {
-    params: {
-      SERVICE: 'WFS',
-      REQUEST: 'GetFeature',
-      TYPENAME: typename,
-      SRSNAME: 'EPSG:4326',
-      OUTPUT: 'application/json',
-      BBOX: KOREA_BBOX,
-    },
-  });
-
-  return response.data;
-};
+export const fetchAirspaceZones = (typename: string): Promise<VWorldFeatureCollection> =>
+  requestAirspaceFeatures(typename, KOREA_BBOX);
