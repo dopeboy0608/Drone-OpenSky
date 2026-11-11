@@ -10,12 +10,11 @@ import { formatLastUpdated } from '@/features/airspace/utils/formatLastUpdated';
 import { resolveStaleTimeMs } from '@/features/airspace/utils/resolveStaleTimeMs';
 import { tagFeatureZoneType } from '@/features/airspace/utils/tagFeatureZoneType';
 
+import { ERROR_TOAST_DURATION_SECONDS, INFO_TOAST_DURATION_SECONDS } from '@/constants/toast';
 import { AIRSPACE_ZONE_CONFIGS, AIRSPACE_ZONE_LABELS } from '@/features/airspace/constants';
 import type { AirspaceZoneConfig, VWorldFeatureCollection } from '@/features/airspace/types';
 
 const STALE_TIME_MS = resolveStaleTimeMs(import.meta.env.VITE_AIRSPACE_STALE_TIME_MS);
-const ERROR_TOAST_DURATION_SECONDS = 3;
-const INFO_TOAST_DURATION_SECONDS = 2;
 const WMS_REFRESH_MESSAGE = 'WMS 모드에서는 타일을 자동으로 불러옵니다.';
 
 // antd 내부 경로를 import하지 않고 공개 API(App.useApp)에서 타입을 얻는다.

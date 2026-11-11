@@ -4,9 +4,8 @@ import { useCallback, useState } from 'react';
 import { findZoneTypeAtPoint } from '@/features/airspace/api/findZoneTypeAtPoint';
 import { useLatestRequest } from '@/features/airspace/hooks/useLatestRequest';
 
+import { ERROR_TOAST_DURATION_SECONDS } from '@/constants/toast';
 import type { SelectedZone } from '@/features/airspace/types';
-
-const ERROR_TOAST_DURATION_SECONDS = 3;
 
 interface UseWmsZoneClickParams {
   // WMS 모드일 때만 켠다. 폴리곤 모드는 폴리곤 자체가 클릭을 받는다.
