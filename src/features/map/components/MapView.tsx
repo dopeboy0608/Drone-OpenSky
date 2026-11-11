@@ -23,6 +23,7 @@ import { getVisibleTypenames } from '@/features/airspace/utils/getVisibleTypenam
 import { getVisibleZoneTypes } from '@/features/airspace/utils/getVisibleZoneTypes';
 
 import { DEFAULT_CENTER, DEFAULT_ZOOM_LEVEL } from '@/features/map/constants';
+import type { MapPosition, SearchCandidate } from '@/features/map/types';
 
 // 참조가 고정된 빈 Set. 렌더마다 새로 만들면 레이어/선택 해제 이펙트가 매번 다시 돈다.
 const NO_VISIBLE_ZONE_TYPES: ReadonlySet<string> = new Set();
@@ -89,6 +90,28 @@ export const MapView = () => {
     selectZone,
     clearZone,
   });
+
+  const panToPosition = ({ lat, lng }: MapPosition) => {
+    kakaoMapInstance?.panTo(new kakao.maps.LatLng(lat, lng));
+  };
+
+  const handleSelectCandidate = ({ lat, lng }: SearchCandidate) => {
+    // 위치 권한 팝업 등으로 최초 위치 조회가 늦어질 때, 사용자가 먼저 검색으로 이동했다면
+    // 조회가 끝난 뒤 지도를 내 위치로 되돌리지 않도록 최초 중심 맞춤을 끝난 것으로 표시한다.
+    hasSetInitialCenterRef.current = true;
+    panToPosition({ lat, lng });
+    showSearchMarker({ lat, lng });
+  };
+
+  const handleMoveToCurrentLocation = () =>
+    refetchLocation({
+      onSuccess: (position) => {
+        panToPosition(position);
+        showCurrentMarker();
+      },
+      // 실패하면 마커 상태를 바꾸지 않는다. 검색 마커가 떠 있다면 위치를 못 구했다는 이유로 지울 필요가 없다.
+      onError: () => message.error('현재 위치를 가져오지 못했습니다.'),
+    });
 
   // 모드를 바꾸면 이전 모드에서 열린 안내는 의미가 없어 닫는다(예전에는 빈 Set 전달로 닫혔다).
   // renderMode는 값이 아니라 "바뀐 시점"을 알리는 트리거로만 쓴다.
@@ -160,29 +183,12 @@ export const MapView = () => {
         {pendingPosition && <AirspaceClickPending position={pendingPosition} />}
         {markerPosition && <MapMarker position={markerPosition} />}
       </KakaoMap>
-      <AddressSearch
-        onSelectCandidate={({ lat, lng }) => {
-          // 위치 권한 팝업 등으로 최초 위치 조회가 늦어질 때, 사용자가 먼저 검색으로 이동했다면
-          // 조회가 끝난 뒤 지도를 내 위치로 되돌리지 않도록 최초 중심 맞춤을 끝난 것으로 표시한다.
-          hasSetInitialCenterRef.current = true;
-          kakaoMapInstance?.panTo(new kakao.maps.LatLng(lat, lng));
-          showSearchMarker({ lat, lng });
-        }}
-      />
+      <AddressSearch onSelectCandidate={handleSelectCandidate} />
       <AirspaceLegend />
       <AirspaceFilterPanel />
       <MapControls
         onRefreshPolygons={refreshStaleZones}
-        onMoveToCurrentLocation={() =>
-          refetchLocation({
-            onSuccess: (position) => {
-              kakaoMapInstance?.panTo(new kakao.maps.LatLng(position.lat, position.lng));
-              showCurrentMarker();
-            },
-            // 실패하면 마커 상태를 바꾸지 않는다. 검색 마커가 떠 있다면 위치를 못 구했다는 이유로 지울 필요가 없다.
-            onError: () => message.error('현재 위치를 가져오지 못했습니다.'),
-          })
-        }
+        onMoveToCurrentLocation={handleMoveToCurrentLocation}
       >
         <AirspaceRenderModeMenu />
         <AirspaceCacheMenu />
