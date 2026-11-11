@@ -312,3 +312,31 @@
 3. `@/pages/*`, `@/routes/*`, `./App` 등 스킬이 계층으로 정의하지 않은 모듈(`routes/router.tsx`, `App.tsx`, `index.tsx`): 위치 변경 없음. `App.tsx`·`index.tsx`는 상대 경로(`./`)라 다른 파일과 스타일이 다르다.
 4. `AirspaceWmsLayer`의 `useMap()`(컨텍스트)과 `useAirspaceFilterStore`(스토어)는 둘 다 1a 블록이라 기존 순서를 유지했다.
 5. 테스트 파일 36개: 이번 범위에서 제외했다(프로덕션 54개 기준 요청).
+
+## 12. `fowler-refactor` 적용 결과 (2026-11-11)
+
+제안서의 추천 1차 묶음을 적용했다: P1~P5, P6(a), P7. 위험이 중간인 P6(b), P9, P10과 선택 항목 P8, P11은 하지 않았다. 증상·원인·개선 방안·Before/After는 [`51-code-smell-study.md`](./51-code-smell-study.md)에 정리했다.
+
+**구조 변화**
+
+- 새 파일: `src/bootstrap.tsx`(부팅 로직), `features/airspace/api/requestAirspaceFeatures.ts`(WFS 요청 공통 함수). `index.tsx`는 `bootstrap`만 호출한다.
+- `features/airspace/constants.ts`는 위험도 순서의 표 하나(`ZONE_TYPES`)에서 `AIRSPACE_ZONE_CONFIGS`와 `TYPENAME_ZONE_LABELS`를 파생한다(export 이름·값·순서 동일). §6의 "정의가 두 곳"과 "키 삽입 순서의 의미"는 구조로 해소됐고, 순서의 의미는 `constants.test.ts`가 고정한다.
+- `WMS_TILE_SIZE`가 `buildWmsTileUrl.ts`에서 export되어 Tileset 크기와 WMS 요청 크기의 암묵적 결합(§6 "타일 크기")이 해소됐다.
+- `App.tsx`·`index.tsx`의 상대 경로 import를 `@/` 별칭으로 통일했다. 상대 경로 import는 이제 0개다.
+
+**적용 후 수치** (적용 전 → 후)
+
+| 항목                  | 적용 전    | 적용 후           |
+| --------------------- | ---------- | ----------------- |
+| 프로덕션 파일 / 줄    | 54 / 2,432 | 56 / 2,474        |
+| 테스트 파일 / 줄      | 39 / 3,781 | 42 / 4,024        |
+| 테스트 개수           | 238        | 251               |
+| 순환 의존             | 없음       | 없음              |
+| `MapView` 팬아웃      | 20         | **21**            |
+| 직접 테스트 없는 파일 | 9          | 7 (스크립트 기준) |
+
+**정직하게 적을 점**
+
+- `MapView`의 팬아웃은 줄지 않고 1 늘었다. P6(a)가 핸들러에 쓰는 `MapPosition`·`SearchCandidate` 타입 import를 추가했기 때문이다. 팬아웃을 실제로 줄이는 것은 보류한 P6(b)(필터·선택·클릭을 airspace 훅으로 이동)다.
+- "직접 테스트 없음"이 9개에서 7개로 준 것은 `fetchAirspaceZones`(특성 테스트 추가)와 `App.tsx`가 새 테스트에서 참조되기 때문인데, `App.tsx`는 `bootstrap.test`에서 **모킹만** 되므로 실질적으로는 여전히 검증되지 않는다. 새 `requestAirspaceFeatures.ts`는 직접 테스트 없이 `fetchAirspaceZones.test`를 통해 간접적으로 검증된다.
+- 공개 인터페이스: export 이름 목록을 전후로 비교해 제거·개명이 없음을 확인했다. 추가된 export는 `WMS_TILE_SIZE`, `requestAirspaceFeatures`, `bootstrap`이다.
