@@ -25,7 +25,8 @@ export const ZoneGuidanceBody = ({ zoneType, address }: ZoneGuidanceBodyProps) =
         </div>
       )}
       <div>{guidance.detail}</div>
-      {addressText && <div className="text-gray-600">{addressText}</div>}
+      {/* 두 줄 높이를 미리 잡아 두는 이유: 주소가 도착하며 카드가 위로 자라는 것을 막는다. */}
+      {addressText && <div className="min-h-8 text-gray-600">{addressText}</div>}
     </div>
   );
 };

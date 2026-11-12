@@ -11,11 +11,12 @@ interface AirspaceClickPendingProps {
 export const AirspaceClickPending = ({ position }: AirspaceClickPendingProps) => (
   <CustomOverlayMap position={position} xAnchor={0} yAnchor={0} zIndex={9}>
     <div className="relative h-0 w-0">
-      {/* 표시가 지도 클릭/드래그를 가로채면 조회 중에 다음 클릭이 먹히지 않는다. */}
+      {/* 크기를 고정하는 이유: 0폭 부모 안의 absolute 요소는 내용 폭으로 쪼그라들 수 있어 원이 타원으로 찌그러져 보였다(원인은 코드 기준 추정, 브라우저 확인 전).
+          표시가 지도 클릭/드래그를 가로채면 조회 중에 다음 클릭이 먹히지 않는다. */}
       <div
         role="status"
         aria-label="구역 조회 중"
-        className="pointer-events-none absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/90 p-1 shadow"
+        className="pointer-events-none absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow"
       >
         <Spin size="small" />
       </div>

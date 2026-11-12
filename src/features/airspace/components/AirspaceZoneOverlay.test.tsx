@@ -65,6 +65,17 @@ describe('AirspaceZoneOverlay 앵커', () => {
     expect(screen.getByText('관제권')).toBeDefined();
   });
 
+  it('열릴 때 꼬리 끝에서 자라나는 효과를 주고, 카드 폭을 고정해 글자 길이에 따라 튀지 않게 한다', () => {
+    render(
+      <AirspaceZoneOverlay position={{ lat: 37, lng: 127 }} zoneType="관제권" onClose={vi.fn()} />,
+    );
+
+    const wrapper = screen.getByTestId('overlay-content').firstElementChild?.firstElementChild;
+
+    expect(wrapper?.className).toContain('zone-card-enter');
+    expect(wrapper?.querySelector('.w-60')).not.toBeNull();
+  });
+
   describe('비행 안내와 주소 (#27)', () => {
     const renderOverlay = (
       zoneType: string | null,
