@@ -176,13 +176,14 @@ describe('AirspaceZoneOverlay 앵커', () => {
           onClose={vi.fn()}
         />,
       );
-      expect(screen.getByText('겹침: 관제권, 경계구역')).toBeDefined();
+      expect(screen.getByText('관제권').className).toContain('ant-tag');
+      expect(screen.getByText('경계구역').className).toContain('ant-tag');
     });
 
     it('구역이 없는 안내에는 겹침 줄을 쓰지 않는다', () => {
       renderOverlay(null);
 
-      expect(screen.queryByText(/겹침|겹치는/)).toBeNull();
+      expect(screen.queryByText(/겹침|겹치는|관제권/)).toBeNull();
     });
 
     it('주소 상태를 주지 않으면 주소 줄을 그리지 않는다', () => {
