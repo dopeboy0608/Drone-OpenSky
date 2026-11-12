@@ -5,6 +5,7 @@ import { CustomOverlayMap } from 'react-kakao-maps-sdk';
 import { ZoneGuidanceBody } from '@/features/airspace/components/ZoneGuidanceBody';
 import { resolveFlightGuidance } from '@/features/airspace/utils/resolveFlightGuidance';
 
+import type { SelectedZone } from '@/features/airspace/types';
 import type { AddressState } from '@/types/address';
 
 interface AirspaceZoneOverlayProps {
@@ -13,6 +14,7 @@ interface AirspaceZoneOverlayProps {
   address?: AddressState;
   // 범례에서 꺼서 지도에 보이지 않는 구역이면 true.
   isHidden?: boolean;
+  overlap?: SelectedZone['overlap'];
   onClose: () => void;
 }
 
@@ -24,6 +26,7 @@ export const AirspaceZoneOverlay = ({
   zoneType,
   address = { status: 'idle' },
   isHidden = false,
+  overlap,
   onClose,
 }: AirspaceZoneOverlayProps) => {
   const { token } = theme.useToken();
@@ -36,7 +39,7 @@ export const AirspaceZoneOverlay = ({
     // 카카오가 측정하는 루트를 0×0으로 두면 어떤 앵커 값이든 오프셋이 0이라 이 계산이 무력화된다. 카드는 그 안에서
     // 절대 위치로 두고 CSS translate(자기 크기 기준)로 꼬리 끝을 클릭 좌표에 맞춘다. 카카오가 xAnchor 0을 기본값
     // 0.5로 바꿔 받더라도 0×0의 절반은 0이라 결과가 같다.
-    <CustomOverlayMap position={position} xAnchor={0} yAnchor={0} zIndex={10}>
+    <CustomOverlayMap position={position} xAnchor={0} yAnchor={0} zIndex={10} clickable>
       <div className="relative h-0 w-0">
         {/* Card의 box-shadow는 꼬리를 따라가지 못해 이음새에서 끊기므로, 카드와 꼬리를 한 덩어리로 감싼 래퍼에 drop-shadow를 준다(지도 색과 구분). */}
         <div
@@ -78,7 +81,12 @@ export const AirspaceZoneOverlay = ({
               body: { paddingTop: 0 },
             }}
           >
-            <ZoneGuidanceBody zoneType={zoneType} address={address} isHidden={isHidden} />
+            <ZoneGuidanceBody
+              zoneType={zoneType}
+              address={address}
+              isHidden={isHidden}
+              overlap={overlap}
+            />
           </Card>
           {/* 테두리 삼각형으로 그려 끝점이 래퍼 바닥(클릭 좌표)에 정확히 놓이게 한다. 회전한 정사각형은 꼭짓점이 어긋난다.
           바깥(카드 테두리색)·안쪽(흰색) 삼각형을 겹쳐 꼬리에도 1px 테두리를 만들고, -mt-px로 카드 아랫변을 안쪽 삼각형이 덮어 이음새 선을 없앤다. */}

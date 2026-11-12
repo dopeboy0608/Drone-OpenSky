@@ -31,6 +31,14 @@ describe('AirspaceZoneOverlay 앵커', () => {
     });
   });
 
+  it('카드를 누르거나 닫기를 눌러도 지도 클릭으로 전파되지 않도록 clickable로 연다', () => {
+    render(
+      <AirspaceZoneOverlay position={{ lat: 37, lng: 127 }} zoneType="관제권" onClose={vi.fn()} />,
+    );
+
+    expect(captured.props).toMatchObject({ clickable: true });
+  });
+
   it('카카오가 측정하는 콘텐츠 크기를 0×0으로 둔다 (구역 이름 길이가 앵커 계산에 영향을 주지 않게)', () => {
     render(
       <AirspaceZoneOverlay position={{ lat: 37, lng: 127 }} zoneType="관제권" onClose={vi.fn()} />,
@@ -147,6 +155,34 @@ describe('AirspaceZoneOverlay 앵커', () => {
       renderOverlay('관제권');
 
       expect(screen.queryByText('범례에서 숨긴 구역입니다.')).toBeNull();
+    });
+
+    it('겹침 확인 중에는 없음으로 단정하지 않고, 끝나면 겹친 구역을 보여 준다', () => {
+      const { rerender } = render(
+        <AirspaceZoneOverlay
+          position={{ lat: 37, lng: 127 }}
+          zoneType="비행금지구역"
+          overlap={{ zoneTypes: [], isComplete: false, hasFailure: false }}
+          onClose={vi.fn()}
+        />,
+      );
+      expect(screen.getByText('겹침 확인 중…')).toBeDefined();
+
+      rerender(
+        <AirspaceZoneOverlay
+          position={{ lat: 37, lng: 127 }}
+          zoneType="비행금지구역"
+          overlap={{ zoneTypes: ['관제권', '경계구역'], isComplete: true, hasFailure: false }}
+          onClose={vi.fn()}
+        />,
+      );
+      expect(screen.getByText('겹침: 관제권, 경계구역')).toBeDefined();
+    });
+
+    it('구역이 없는 안내에는 겹침 줄을 쓰지 않는다', () => {
+      renderOverlay(null);
+
+      expect(screen.queryByText(/겹침|겹치는/)).toBeNull();
     });
 
     it('주소 상태를 주지 않으면 주소 줄을 그리지 않는다', () => {

@@ -40,21 +40,34 @@ const startPointQueries = (
     ),
   );
 
-// WMS 모드에서 클릭 지점이 속한 구역 종류(한글 라벨)를 찾는다. 없으면 null.
-// typenames 순서가 곧 우선순위다(TYPENAME_ZONE_LABELS는 위험도 높은 순). 폴리곤 모드에서 가장 위에 그려진
-// 폴리곤이 클릭을 받는 것과 같은 결과가 되도록, 응답이 도착한 순서가 아니라 이 순서로 고른다.
-export const findZoneTypeAtPoint = async (
+export interface ZonesAtPoint {
+  // 우선순위 순서의 구역 종류(한글 라벨). 첫 항목이 최상위이고 나머지는 겹친 구역이다.
+  zones: string[];
+  // 일부 요청이 실패했다. 겹친 구역이 빠졌을 수 있다는 뜻이다.
+  hasFailure: boolean;
+}
+
+interface FindZonesAtPointOptions {
+  signal?: AbortSignal;
+  // 구역이 하나 확정될 때마다 지금까지의 목록으로 호출한다. 최상위 구역을 나머지 응답을 기다리지 않고 먼저 보여 주기 위함이다.
+  onProgress?: (zones: string[]) => void;
+}
+
+// 클릭 지점이 속한 모든 구역 종류(한글 라벨)를 우선순위 순서로 찾는다. 없으면 빈 목록.
+// typenames 순서가 곧 우선순위다(TYPENAME_ZONE_LABELS는 위험도 높은 순). 응답이 도착한 순서가 아니라 이 순서로 확정한다.
+export const findZonesAtPoint = async (
   point: { lat: number; lng: number },
   typenames: string[],
-  signal?: AbortSignal,
-): Promise<string | null> => {
+  { signal, onProgress }: FindZonesAtPointOptions = {},
+): Promise<ZonesAtPoint> => {
   const linked = linkAbortSignals(signal);
 
-  // 결과는 우선순위 순서로 하나씩 확인한다. 그러면 높은 우선순위가 확정되는
-  // 즉시 끝낼 수 있어 가장 느린 응답(예: 큰 국립공원 지오메트리)을 기다리지 않는다.
+  // 요청은 전부 동시에 시작하고, 결과는 우선순위 순서로 하나씩 확인한다. 높은 우선순위가 확정되는 즉시 onProgress로 알려
+  // 가장 느린 응답(예: 큰 국립공원 지오메트리)을 기다리지 않고도 최상위 구역을 보여 줄 수 있다.
   const settled = startPointQueries(point, typenames, linked.signal);
 
   try {
+    const zones: string[] = [];
     let firstFailure: Extract<Settled, { status: 'rejected' }> | undefined;
 
     for (const [index, pending] of settled.entries()) {
@@ -69,19 +82,23 @@ export const findZoneTypeAtPoint = async (
         continue;
       }
 
-      if (result.isInside) {
-        return TYPENAME_ZONE_LABELS[typenames[index]] ?? null;
+      const label = TYPENAME_ZONE_LABELS[typenames[index]];
+
+      if (result.isInside && label !== undefined) {
+        zones.push(label);
+        onProgress?.([...zones]);
       }
     }
 
     // 구역이 없다고 답하려면 실패한 요청이 없어야 한다. 실패를 "빈 땅"으로 보이게 하면 비행 가능으로 오해할 수 있다.
-    if (firstFailure) {
+    // 하나라도 찾았다면 목록을 돌려주되 hasFailure로 겹친 구역이 빠졌을 수 있음을 알린다.
+    if (zones.length === 0 && firstFailure) {
       throw firstFailure.reason;
     }
 
-    return null;
+    return { zones, hasFailure: firstFailure !== undefined };
   } finally {
-    // 결과가 확정됐거나 오류로 끝나면 아직 진행 중인 나머지 요청은 끊는다.
+    // 끝났거나 오류·취소로 중단되면 아직 진행 중인 나머지 요청은 끊는다.
     linked.abort();
     linked.dispose();
   }

@@ -67,7 +67,7 @@
           - `features/airspace/components/AirspaceZoneOverlay.tsx`
           - `features/airspace/hooks/useSelectedZone.ts`
             - `features/airspace/types.ts` _(type)_ ↑
-          - `features/airspace/hooks/useZoneClick.ts`
+          - `features/airspace/hooks/useWmsZoneClick.ts`
             - `features/airspace/api/findZoneTypeAtPoint.ts`
               - `features/airspace/api/fetchAirspaceZonesAtPoint.ts`
                 - `api/vworldClient.ts`
@@ -179,8 +179,8 @@
 | 쿼리 키 공유                              | `airspaceZoneQueryKey` ← `hydrateAirspaceCache`, `useAirspaceZoneQueries`                                                                                                                                   | 키가 달라지면 하이드레이션한 데이터가 쿼리에 안 붙는다. 동일 함수를 쓰는 것이 유일한 보장이다.                                                                                                                                            |
 | **순서(키 삽입 순서)의 의미**             | `constants.ts`의 `TYPENAME_ZONE_LABELS` → `airspaceFilterStore`(초기 visibility) → `getVisibleTypenames` → (a) `AirspaceWmsLayer`의 슬롯 배정·오버레이 쌓임 순서, (b) `findZoneTypeAtPoint`의 겹침 우선순위 | 객체 키 삽입 순서가 "위험도 우선순위"라는 의미를 갖는다. 선언 순서를 바꾸면 타일 쌓임과 클릭 판정 결과가 함께 바뀐다. 코드에는 주석으로만 남아 있다.                                                                                      |
 | typename 정의가 두 곳                     | `AIRSPACE_ZONE_CONFIGS`(그룹별 typename 배열)와 `TYPENAME_ZONE_LABELS`(라벨)                                                                                                                                | 같은 12종을 서로 다른 구조로 정의한다. 한쪽만 고치면 어긋난다.                                                                                                                                                                            |
-| 취소 신호 전달                            | `useZoneClick` → `findZoneTypeAtPoint` → `fetchAirspaceZonesAtPoint` → axios                                                                                                                                | `AbortSignal`이 세 계층을 관통한다.                                                                                                                                                                                                       |
-| 콘솔 출력                                 | `vworldClient`, `airspaceCacheStore`, `hydrateAirspaceCache`, `useZoneClick`, `useAirspaceZoneQueries`, `index.tsx`                                                                                         | 오류 보고 경로가 파일마다 `console.*`로 흩어져 있다. 취소 오류는 `vworldClient` 인터셉터에서만 걸러진다.                                                                                                                                  |
+| 취소 신호 전달                            | `useWmsZoneClick` → `findZoneTypeAtPoint` → `fetchAirspaceZonesAtPoint` → axios                                                                                                                             | `AbortSignal`이 세 계층을 관통한다.                                                                                                                                                                                                       |
+| 콘솔 출력                                 | `vworldClient`, `airspaceCacheStore`, `hydrateAirspaceCache`, `useWmsZoneClick`, `useAirspaceZoneQueries`, `index.tsx`                                                                                      | 오류 보고 경로가 파일마다 `console.*`로 흩어져 있다. 취소 오류는 `vworldClient` 인터셉터에서만 걸러진다.                                                                                                                                  |
 | import 스타일 혼재                        | `App.tsx`, `index.tsx`만 상대 경로(`./`), 나머지는 전부 `@/` 별칭                                                                                                                                           | `code-organizer`의 그룹 정렬 대상이 되는 지점.                                                                                                                                                                                            |
 
 ## 7. 테스트와의 연결
@@ -215,7 +215,7 @@
 | `features/airspace/components/AirspaceZoneOverlay.tsx`    | 71  | 0    | 1    | 5         | `AirspaceZoneOverlay.test.tsx`, `MapView.test.tsx`                                                                                                                                          |
 | `features/airspace/constants.ts`                          | 59  | 1    | 11   | 17        | `hydrateAirspaceCache.test.ts`, `AirspacePolygonLayer.test.tsx`, `AirspaceWmsLayer.test.tsx`, `airspaceFilterStore.test.ts`                                                                 |
 | `features/airspace/hooks/useSelectedZone.ts`              | 23  | 1    | 1    | 5         | `useSelectedZone.test.ts`                                                                                                                                                                   |
-| `features/airspace/hooks/useZoneClick.ts`                 | 92  | 2    | 1    | 5         | `useZoneClick.test.tsx`                                                                                                                                                                     |
+| `features/airspace/hooks/useWmsZoneClick.ts`              | 92  | 2    | 1    | 5         | `useWmsZoneClick.test.tsx`                                                                                                                                                                  |
 | `features/airspace/queries/airspaceZoneQueryKey.ts`       | 6   | 1    | 2    | 7         | `hydrateAirspaceCache.test.ts`                                                                                                                                                              |
 | `features/airspace/queries/useAirspaceZoneQueries.ts`     | 141 | 9    | 1    | 5         | `useAirspaceZoneQueries.cacheDisabled.test.tsx`, `useAirspaceZoneQueries.test.tsx`, `MapView.test.tsx`                                                                                      |
 | `features/airspace/store/airspaceCacheSettingStore.ts`    | 27  | 0    | 3    | 7         | `AirspaceCacheMenu.test.tsx`, `useAirspaceZoneQueries.cacheDisabled.test.tsx`, `useAirspaceZoneQueries.test.tsx`, `airspaceCacheSettingStore.test.ts`                                       |
@@ -256,7 +256,7 @@
 
 1. **캐시·부팅**: `index.tsx`, `App.tsx`, `api/queryClient.ts`, `cache/airspaceCacheStore.ts`, `cache/hydrateAirspaceCache.ts`, `queries/airspaceZoneQueryKey.ts`, `queries/useAirspaceZoneQueries.ts`, `store/airspaceCacheSettingStore.ts`, `components/AirspaceCacheMenu.tsx`, `utils/{formatLastUpdated,resolveStaleTimeMs}.ts`
 2. **WMS 타일**: `components/AirspaceWmsLayer.tsx`, `utils/{buildWmsTileUrl,chunkTypenames,getVisibleTypenames,getWmsTileBbox,latLngToWebMercator,tileToWcongBounds}.ts`, `store/airspaceFilterStore.ts`, `constants.ts`
-3. **WMS 클릭 안내**: `hooks/useZoneClick.ts`, `api/findZoneTypeAtPoint.ts`, `api/fetchAirspaceZonesAtPoint.ts`, `utils/isPointInMultiPolygon.ts`, `components/AirspaceClickPending.tsx`, `components/AirspaceZoneOverlay.tsx`, `hooks/useSelectedZone.ts`, `api/vworldClient.ts`
+3. **WMS 클릭 안내**: `hooks/useWmsZoneClick.ts`, `api/findZoneTypeAtPoint.ts`, `api/fetchAirspaceZonesAtPoint.ts`, `utils/isPointInMultiPolygon.ts`, `components/AirspaceClickPending.tsx`, `components/AirspaceZoneOverlay.tsx`, `hooks/useSelectedZone.ts`, `api/vworldClient.ts`
 4. **폴리곤 렌더**: `components/AirspacePolygonLayer.tsx`, `components/AirspacePolygon.tsx`, `utils/{multiPolygonToKakaoPaths,polygonCentroid,tagFeatureZoneType}.ts`, `api/fetchAirspaceZones.ts`
 5. **범례·필터·표시 방식 UI**: `components/{AirspaceFilterPanel,AirspaceLegend,AirspaceRenderModeMenu}.tsx`, `store/{airspaceFilterStore,airspaceRenderModeStore}.ts`, `utils/{getGroupCheckState,getVisibleZoneTypes}.ts`
 6. **라우팅·페이지**: `routes/router.tsx`, `pages/MapPage.tsx` (`App.tsx`·`index.tsx`는 1번과 겹침)
@@ -291,17 +291,17 @@
 
 **Part 1: import (10개 파일)**
 
-- 이미 대부분 정렬돼 있어 상수·타입을 맨 아래 그룹(5)으로 내리고 그룹 사이 빈 줄을 맞추는 정도였다: `fetchAirspaceZones`, `fetchAirspaceZonesAtPoint`, `findZoneTypeAtPoint`, `hydrateAirspaceCache`, `AirspacePolygonLayer`, `AirspaceWmsLayer`, `useZoneClick`, `useAirspaceZoneQueries`, `MapView`, `routes/router`.
+- 이미 대부분 정렬돼 있어 상수·타입을 맨 아래 그룹(5)으로 내리고 그룹 사이 빈 줄을 맞추는 정도였다: `fetchAirspaceZones`, `fetchAirspaceZonesAtPoint`, `findZoneTypeAtPoint`, `hydrateAirspaceCache`, `AirspacePolygonLayer`, `AirspaceWmsLayer`, `useWmsZoneClick`, `useAirspaceZoneQueries`, `MapView`, `routes/router`.
 - 스킬이 순서를 정의하지 않은 `api/`, `cache/`, `utils/`는 기존 관례(경로 알파벳 순)를 유지했다.
 
 **Part 2: 컴포넌트·훅 본문 (4개 파일)**
 
-| 파일                  | 변경                                                                                                                                         |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `MapView.tsx`         | 스토어 구독 → 로더·쿼리 훅 → 상태 → ref → 파생값(`useMemo`) → 파생값에 의존하는 훅(`useSelectedZone`, `useZoneClick`) → 이펙트 순으로 재배치 |
-| `AddressSearch.tsx`   | 단일 의존 이펙트(`[isOpen]`)를 다중 의존 이펙트 앞으로, 상태에 의존하는 훅 앞 빈 줄                                                          |
-| `AirspacePolygon.tsx` | `useCallback` 핸들러를 `useLayoutEffect` 위로                                                                                                |
-| `useZoneClick.ts`     | `useCallback` 핸들러(`onMapClick`)를 마운트 이펙트 위로                                                                                      |
+| 파일                  | 변경                                                                                                                                            |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MapView.tsx`         | 스토어 구독 → 로더·쿼리 훅 → 상태 → ref → 파생값(`useMemo`) → 파생값에 의존하는 훅(`useSelectedZone`, `useWmsZoneClick`) → 이펙트 순으로 재배치 |
+| `AddressSearch.tsx`   | 단일 의존 이펙트(`[isOpen]`)를 다중 의존 이펙트 앞으로, 상태에 의존하는 훅 앞 빈 줄                                                             |
+| `AirspacePolygon.tsx` | `useCallback` 핸들러를 `useLayoutEffect` 위로                                                                                                   |
+| `useWmsZoneClick.ts`  | `useCallback` 핸들러(`onMapClick`)를 마운트 이펙트 위로                                                                                         |
 
 **검증**: 변경 전후 줄 집합이 12개 파일 모두 동일(이동만 있음), `pnpm lint`, `npx tsc --noEmit`, `pnpm test`(238개), `prettier --check` 통과. 줄 집합 비교만으로는 효과가 중간에서 잘리는 편집 오류를 잡지 못했고(작업 중 한 번 발생해 테스트와 린트가 잡았다), 최종 보증은 위 네 가지 검사다.
 
@@ -342,5 +342,5 @@
 - `MapView` 팬아웃은 1차(P6 핸들러 추출) 뒤 오히려 21로 늘었다(핸들러에 쓰는 타입 import 추가). 2차에서 책임을 `useAirspaceMapInteraction`으로 옮긴 뒤에야 18로 줄었다. 이름 붙이기만으로는 의존이 줄지 않았다.
 - "직접 테스트 없음"이 그대로 9개인 이유: 일부(`fetchAirspaceZones`)는 특성 테스트로 해소됐지만, 새로 만든 파일 중 `constants/toast.ts`, `requestAirspaceFeatures.ts`, `wmsTilesets.ts`는 이를 쓰는 기존 테스트로 간접 검증될 뿐 직접 테스트가 없다. `App.tsx`는 `bootstrap.test`에서 모킹만 되어 스크립트 목록에서는 빠지지만 실질적으로 미검증이다. 여전히 직접 테스트가 없는 기존 파일: `AirspacePolygon`, `AirspaceRenderModeMenu`, `MapControls`, `useDebouncedValue`, `MapPage`, `router`.
 - 공개 인터페이스: export 이름 목록을 전후로 비교해 제거·개명이 없음을 확인했다. 추가된 export는 `WMS_TILE_SIZE`, `requestAirspaceFeatures`, `bootstrap`, `wmsTilesets`의 네 심볼, `useLatestRequest`, `useAirspaceMapInteraction`, 토스트 상수 2개다.
-- 후속 과제(F1, **이슈 #94에서 수정됨**): `useZoneClick`의 원래 주석은 "모드를 바꾸거나 언마운트되면 조회를 끊는다"였지만 코드는 언마운트에서만 끊는다. 프로브로 원본과 현재가 같은 동작임을 확인했고, 동작을 바꾸는 수정이라 이번에는 고치지 않았다(주석만 코드에 맞췄다).
+- 후속 과제(F1, **이슈 #94에서 수정됨**): `useWmsZoneClick`의 원래 주석은 "모드를 바꾸거나 언마운트되면 조회를 끊는다"였지만 코드는 언마운트에서만 끊는다. 프로브로 원본과 현재가 같은 동작임을 확인했고, 동작을 바꾸는 수정이라 이번에는 고치지 않았다(주석만 코드에 맞췄다).
 - 묶음 간 직접 연결(`MapView`를 거치지 않는 것): §9의 **5개에서 8개로 늘었다.** 책임이 `MapView`에서 airspace 안으로 이동하면서 airspace 내부 묶음 사이의 연결이 드러났기 때문이다. 현재의 8개: 캐시·부팅→라우팅(`App`→`router`), 폴리곤→WMS 클릭(`fetchAirspaceZones`→`requestAirspaceFeatures`), WMS 타일→범례(`AirspaceWmsLayer`·`wmsTilesets`→`airspaceFilterStore`), WMS 클릭→범례(`useAirspaceMapInteraction`→`getVisibleZoneTypes`, 표시 방식 스토어), WMS 클릭→WMS 타일(`useAirspaceMapInteraction`→`getVisibleTypenames`), 캐시·부팅→폴리곤(`useAirspaceZoneQueries`→`fetchAirspaceZones`·`tagFeatureZoneType`), 범례→WMS 타일(`getVisibleZoneTypes`→`getVisibleTypenames`, P2로 생김), 라우팅→지도(`MapPage`→`MapView`). `MapView`의 팬아웃과 map→airspace import는 줄었지만, 전체 결합이 줄었다고 말할 수는 없다. 결합의 위치가 바뀌었다.

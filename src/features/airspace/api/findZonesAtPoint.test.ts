@@ -1,7 +1,8 @@
+import { waitFor } from '@testing-library/react';
 import { delay, http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
 
-import { findZoneTypeAtPoint } from '@/features/airspace/api/findZoneTypeAtPoint';
+import { findZonesAtPoint } from '@/features/airspace/api/findZonesAtPoint';
 import { server } from '@/test/mocks/server';
 
 const WFS_URL = 'https://server-eosin-five-92.vercel.app/api/vworld-api/wfs';
@@ -33,7 +34,7 @@ const respondBy = (byTypename: Record<string, () => Response>) =>
     }),
   );
 
-describe('findZoneTypeAtPoint', () => {
+describe('findZonesAtPoint', () => {
   it('클릭 지점 주변 작은 BBOX(경도,위도 순)로 typename마다 요청한다', async () => {
     const seen: URLSearchParams[] = [];
     server.use(
@@ -43,7 +44,7 @@ describe('findZoneTypeAtPoint', () => {
       }),
     );
 
-    await findZoneTypeAtPoint(POINT, ['lt_c_aisprhc', 'lt_c_aisctrc']);
+    await findZonesAtPoint(POINT, ['lt_c_aisprhc', 'lt_c_aisctrc']);
 
     expect(seen.map((params) => params.get('TYPENAME')).sort()).toEqual([
       'lt_c_aisctrc',
@@ -57,13 +58,16 @@ describe('findZoneTypeAtPoint', () => {
   it('클릭 지점을 포함하는 구역의 한글 종류 라벨을 반환한다', async () => {
     respondBy({ lt_c_aisctrc: () => collection(containing) });
 
-    expect(await findZoneTypeAtPoint(POINT, ['lt_c_aisprhc', 'lt_c_aisctrc'])).toBe('관제권');
+    expect(await findZonesAtPoint(POINT, ['lt_c_aisprhc', 'lt_c_aisctrc'])).toEqual({
+      zones: ['관제권'],
+      hasFailure: false,
+    });
   });
 
   it('BBOX에 걸렸어도 지점을 포함하지 않으면 제외한다', async () => {
     respondBy({ lt_c_aisprhc: () => collection(nearbyOnly) });
 
-    expect(await findZoneTypeAtPoint(POINT, ['lt_c_aisprhc'])).toBeNull();
+    expect((await findZonesAtPoint(POINT, ['lt_c_aisprhc'])).zones).toEqual([]);
   });
 
   it('홀 안의 지점은 해당 구역이 아니다', async () => {
@@ -71,36 +75,42 @@ describe('findZoneTypeAtPoint', () => {
       lt_c_wgisnpgug: () => collection(featureOf(ring(0, 0, 10, 10), ring(4, 4, 6, 6))),
     });
 
-    expect(await findZoneTypeAtPoint(POINT, ['lt_c_wgisnpgug'])).toBeNull();
+    expect((await findZonesAtPoint(POINT, ['lt_c_wgisnpgug'])).zones).toEqual([]);
   });
 
-  it('여러 구역에 겹치면 typename 순서상 먼저인(위험도 높은) 구역을 반환한다', async () => {
+  it('여러 구역에 겹치면 모두 반환하고, 입력 순서(우선순위)대로 정렬한다', async () => {
     respondBy({
       lt_c_aisprhc: () => collection(containing),
       lt_c_aisctrc: () => collection(containing),
     });
 
-    // 입력 순서와 응답 도착 순서에 상관없이 앞선 typename이 이긴다.
-    expect(await findZoneTypeAtPoint(POINT, ['lt_c_aisprhc', 'lt_c_aisctrc'])).toBe('비행금지구역');
+    // 응답 도착 순서에 상관없이 앞선 typename이 먼저다.
+    expect((await findZonesAtPoint(POINT, ['lt_c_aisprhc', 'lt_c_aisctrc'])).zones).toEqual([
+      '비행금지구역',
+      '관제권',
+    ]);
   });
 
-  it('typename이 비어 있으면 요청 없이 null을 반환한다', async () => {
-    expect(await findZoneTypeAtPoint(POINT, [])).toBeNull();
+  it('typename이 비어 있으면 요청 없이 빈 목록을 반환한다', async () => {
+    expect(await findZonesAtPoint(POINT, [])).toEqual({ zones: [], hasFailure: false });
   });
 
-  it('일부 요청이 실패해도 다른 요청에서 구역이 찾아지면 그것을 반환한다', async () => {
+  it('일부 요청이 실패해도 찾은 구역은 반환하되 실패했음을 알린다 (겹친 구역이 빠졌을 수 있다)', async () => {
     respondBy({
       lt_c_aisprhc: () => HttpResponse.error(),
       lt_c_aisctrc: () => collection(containing),
     });
 
-    expect(await findZoneTypeAtPoint(POINT, ['lt_c_aisprhc', 'lt_c_aisctrc'])).toBe('관제권');
+    expect(await findZonesAtPoint(POINT, ['lt_c_aisprhc', 'lt_c_aisctrc'])).toEqual({
+      zones: ['관제권'],
+      hasFailure: true,
+    });
   });
 
   it('구역이 없고 일부가 실패했으면 빈 땅으로 오해하지 않도록 오류를 던진다', async () => {
     respondBy({ lt_c_aisprhc: () => HttpResponse.error() });
 
-    await expect(findZoneTypeAtPoint(POINT, ['lt_c_aisprhc', 'lt_c_aisctrc'])).rejects.toThrow();
+    await expect(findZonesAtPoint(POINT, ['lt_c_aisprhc', 'lt_c_aisctrc'])).rejects.toThrow();
   });
 
   it('VWorld 오류 응답(HTTP 200 + 예외 XML)도 실패로 취급한다', async () => {
@@ -109,33 +119,51 @@ describe('findZoneTypeAtPoint', () => {
         HttpResponse.text('<ServiceExceptionReport>INVALID_KEY</ServiceExceptionReport>'),
     });
 
-    await expect(findZoneTypeAtPoint(POINT, ['lt_c_aisprhc'])).rejects.toThrow();
+    await expect(findZonesAtPoint(POINT, ['lt_c_aisprhc'])).rejects.toThrow();
   });
 
-  describe('응답 대기 방식 (체감 지연 개선)', () => {
-    it('우선순위가 높은 구역이 적중하면 낮은 우선순위의 느린 응답을 기다리지 않는다', async () => {
+  describe('진행 알림 (최상위 구역을 먼저 보여 주기)', () => {
+    it('구역이 확정될 때마다 지금까지의 목록으로 알린다', async () => {
+      respondBy({
+        lt_c_aisprhc: () => collection(containing),
+        lt_c_aisctrc: () => collection(containing),
+      });
+      const progress: string[][] = [];
+
+      await findZonesAtPoint(POINT, ['lt_c_aisprhc', 'lt_c_aisctrc'], {
+        onProgress: (zones) => progress.push(zones),
+      });
+
+      expect(progress).toEqual([['비행금지구역'], ['비행금지구역', '관제권']]);
+    });
+
+    it('최상위 구역은 낮은 우선순위의 느린 응답을 기다리지 않고 먼저 알린다', async () => {
+      let resolveSlow: () => void = () => {};
+      const slowGate = new Promise<void>((resolve) => {
+        resolveSlow = resolve;
+      });
       server.use(
         http.get(WFS_URL, async ({ request }) => {
           const typename = new URL(request.url).searchParams.get('TYPENAME');
           if (typename === 'lt_c_aisprhc') {
             return collection(containing);
           }
-          await delay('infinite');
-          return collection();
+          await slowGate;
+          return collection(containing);
         }),
       );
-
-      // 낮은 우선순위 응답이 영영 오지 않아도 확정된다(기다렸다면 테스트가 시간 초과된다).
-      expect(await findZoneTypeAtPoint(POINT, ['lt_c_aisprhc', 'lt_c_aisctrc'])).toBe(
-        '비행금지구역',
-      );
-    });
-
-    it('낮은 우선순위가 먼저 적중해도 높은 우선순위 응답이 끝나기 전에는 확정하지 않는다', async () => {
-      respondBy({
-        lt_c_aisprhc: () => collection(containing),
-        lt_c_aisctrc: () => collection(containing),
+      const progress: string[][] = [];
+      const pending = findZonesAtPoint(POINT, ['lt_c_aisprhc', 'lt_c_aisctrc'], {
+        onProgress: (zones) => progress.push(zones),
       });
+
+      await waitFor(() => expect(progress).toEqual([['비행금지구역']]));
+      resolveSlow();
+
+      expect((await pending).zones).toEqual(['비행금지구역', '관제권']);
+    });
+
+    it('낮은 우선순위가 먼저 도착해도 높은 우선순위 응답이 끝나기 전에는 알리지 않는다', async () => {
       server.use(
         http.get(WFS_URL, async ({ request }) => {
           const typename = new URL(request.url).searchParams.get('TYPENAME');
@@ -145,28 +173,18 @@ describe('findZoneTypeAtPoint', () => {
           return collection(containing);
         }),
       );
+      const progress: string[][] = [];
 
-      // 관제권이 먼저 도착해도 느린 비행금지구역이 같은 지점을 포함하면 그쪽이 이긴다.
-      expect(await findZoneTypeAtPoint(POINT, ['lt_c_aisprhc', 'lt_c_aisctrc'])).toBe(
-        '비행금지구역',
-      );
+      await findZonesAtPoint(POINT, ['lt_c_aisprhc', 'lt_c_aisctrc'], {
+        onProgress: (zones) => progress.push(zones),
+      });
+
+      // 첫 알림이 관제권 단독이면 우선순위가 뒤집힌 것이다.
+      expect(progress[0]).toEqual(['비행금지구역']);
     });
+  });
 
-    it('높은 우선순위가 느리게 "없음"으로 끝나면 낮은 우선순위의 적중을 반환한다', async () => {
-      server.use(
-        http.get(WFS_URL, async ({ request }) => {
-          const typename = new URL(request.url).searchParams.get('TYPENAME');
-          if (typename === 'lt_c_aisprhc') {
-            await delay(60);
-            return collection();
-          }
-          return collection(containing);
-        }),
-      );
-
-      expect(await findZoneTypeAtPoint(POINT, ['lt_c_aisprhc', 'lt_c_aisctrc'])).toBe('관제권');
-    });
-
+  describe('취소', () => {
     it('바깥에서 취소(AbortSignal)하면 진행 중인 요청을 끊고 오류로 끝난다', async () => {
       server.use(
         http.get(WFS_URL, async () => {
@@ -176,7 +194,7 @@ describe('findZoneTypeAtPoint', () => {
       );
       const controller = new AbortController();
 
-      const pending = findZoneTypeAtPoint(POINT, ['lt_c_aisprhc'], controller.signal);
+      const pending = findZonesAtPoint(POINT, ['lt_c_aisprhc'], { signal: controller.signal });
       controller.abort();
 
       await expect(pending).rejects.toThrow();
