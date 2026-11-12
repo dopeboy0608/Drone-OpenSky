@@ -1,13 +1,20 @@
 import { App as AntdApp } from 'antd';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { findZoneTypeAtPoint } from '@/features/airspace/api/findZoneTypeAtPoint';
+import { findZonesAtPoint } from '@/features/airspace/api/findZonesAtPoint';
 import { useLatestRequest } from '@/features/airspace/hooks/useLatestRequest';
 
 import { ERROR_TOAST_DURATION_SECONDS } from '@/constants/toast';
 import type { SelectedZone } from '@/features/airspace/types';
 
-interface UseWmsZoneClickParams {
+// 폴리곤 클릭과 지도 클릭이 한 번의 사용자 클릭에서 모두 올 수 있다(카카오가 폴리곤 위 클릭을 지도 클릭으로도 전달하는지는
+// 브라우저에서 확인되지 않았다). 같은 지점의 연속 호출을 하나로 합치지 않으면 조회가 두 배로 나간다(12건 → 24건).
+// 시간 창을 짧게 둔 이유: 사용자가 일부러 같은 곳을 다시 누른 것까지 막지 않으려는 것이다.
+const DUPLICATE_CLICK_WINDOW_MS = 300;
+// 같은 클릭이라도 두 이벤트의 좌표가 소수 아래에서 미세하게 다를 수 있어 허용 오차를 둔다(약 1m).
+const DUPLICATE_CLICK_TOLERANCE_DEGREES = 1e-5;
+
+interface UseZoneClickParams {
   enabled: boolean;
   // 값이 바뀌면 진행 중인 조회를 끊는다(표시 방식을 바꾸면 이전 방식에서 낸 클릭의 결과는 의미가 없다, #94).
   resetKey?: unknown;
@@ -25,16 +32,30 @@ export const useZoneClick = ({
   typenames,
   selectZone,
   clearZone,
-}: UseWmsZoneClickParams) => {
+}: UseZoneClickParams) => {
   const { message } = AntdApp.useApp();
   // 조회가 끝날 때까지 클릭 지점에 보여 줄 좌표. 응답을 기다리는 동안 화면이 멈춘 것처럼 보이지 않게 한다.
   const [pendingPosition, setPendingPosition] = useState<{ lat: number; lng: number } | null>(null);
   // 연속 클릭에서 늦게 도착한 이전 응답이 나중 클릭의 결과를 덮어쓰지 않도록 마지막 요청만 반영한다.
   const { begin: beginLatestRequest, cancel: cancelLatestRequest } = useLatestRequest();
+  const lastClickRef = useRef<{ lat: number; lng: number; at: number } | null>(null);
 
   const onMapClick = useCallback(
     async (point: { lat: number; lng: number }) => {
       if (!enabled) {
+        return;
+      }
+
+      const now = Date.now();
+      const lastClick = lastClickRef.current;
+      lastClickRef.current = { ...point, at: now };
+
+      if (
+        lastClick &&
+        now - lastClick.at < DUPLICATE_CLICK_WINDOW_MS &&
+        Math.abs(lastClick.lat - point.lat) < DUPLICATE_CLICK_TOLERANCE_DEGREES &&
+        Math.abs(lastClick.lng - point.lng) < DUPLICATE_CLICK_TOLERANCE_DEGREES
+      ) {
         return;
       }
 
@@ -50,14 +71,36 @@ export const useZoneClick = ({
       setPendingPosition(point);
 
       try {
-        const zoneType = await findZoneTypeAtPoint(point, typenames, signal);
+        const { zones, hasFailure } = await findZonesAtPoint(point, typenames, {
+          signal,
+          // 최상위 구역이 확정되면 나머지 겹침 확인을 기다리지 않고 바로 안내를 열고, 겹친 구역은 도착하는 대로 덧붙인다.
+          onProgress: (found) => {
+            if (!isLatest()) {
+              return;
+            }
+
+            setPendingPosition(null);
+            selectZone({
+              position: point,
+              zoneType: found[0],
+              overlap: { zoneTypes: found.slice(1), isComplete: false, hasFailure: false },
+            });
+          },
+        });
 
         if (!isLatest()) {
           return;
         }
 
         // 구역이 없어도 안내를 연다. 닫기만 하면 "규제 없음"인지 클릭이 무시된 건지 알 수 없다(#27).
-        selectZone({ position: point, zoneType });
+        selectZone({
+          position: point,
+          zoneType: zones[0] ?? null,
+          overlap:
+            zones.length > 0
+              ? { zoneTypes: zones.slice(1), isComplete: true, hasFailure }
+              : undefined,
+        });
       } catch (error) {
         if (!isLatest()) {
           return;

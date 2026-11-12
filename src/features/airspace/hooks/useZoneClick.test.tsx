@@ -53,7 +53,11 @@ describe('useZoneClick', () => {
 
     await act(() => result.current.onMapClick(POINT));
 
-    expect(selectZone).toHaveBeenCalledWith({ position: POINT, zoneType: '비행금지구역' });
+    expect(selectZone).toHaveBeenLastCalledWith({
+      position: POINT,
+      zoneType: '비행금지구역',
+      overlap: { zoneTypes: [], isComplete: true, hasFailure: false },
+    });
   });
 
   it('구역이 없는 곳을 클릭하면 "구역 없음" 안내를 연다 (닫기만 하면 클릭이 무시된 것처럼 보인다, #27)', async () => {
@@ -283,7 +287,11 @@ describe('useZoneClick 조회 중 비활성화', () => {
 
     await act(() => result.current.onMapClick(POINT));
 
-    expect(selectZone).toHaveBeenCalledWith({ position: POINT, zoneType: '비행금지구역' });
+    expect(selectZone).toHaveBeenLastCalledWith({
+      position: POINT,
+      zoneType: '비행금지구역',
+      overlap: { zoneTypes: [], isComplete: true, hasFailure: false },
+    });
   });
 });
 
@@ -323,5 +331,87 @@ describe('useZoneClick resetKey', () => {
 
     expect(selectZone).not.toHaveBeenCalled();
     expect(result.current.pendingPosition).toBeNull();
+  });
+});
+
+describe('useZoneClick 겹침과 중복 클릭 (#27)', () => {
+  afterEach(cleanup);
+
+  const setupTwoTypenames = () => {
+    const selectZone = vi.fn();
+    const clearZone = vi.fn();
+    const wrapper = ({ children }: { children: ReactNode }) => <AntdApp>{children}</AntdApp>;
+    const hook = renderHook(
+      () =>
+        useZoneClick({
+          enabled: true,
+          typenames: ['lt_c_aisprhc', 'lt_c_aisctrc'],
+          selectZone,
+          clearZone,
+        }),
+      { wrapper },
+    );
+    return { ...hook, selectZone };
+  };
+
+  it('최상위 구역을 먼저 열고, 겹친 구역은 확인이 끝난 뒤 채운다', async () => {
+    server.use(http.get(WFS_URL, hit));
+    const { result, selectZone } = setupTwoTypenames();
+
+    await act(() => result.current.onMapClick(POINT));
+
+    expect(selectZone.mock.calls.map(([zone]) => zone)).toEqual([
+      {
+        position: POINT,
+        zoneType: '비행금지구역',
+        overlap: { zoneTypes: [], isComplete: false, hasFailure: false },
+      },
+      {
+        position: POINT,
+        zoneType: '비행금지구역',
+        overlap: { zoneTypes: ['관제권'], isComplete: false, hasFailure: false },
+      },
+      {
+        position: POINT,
+        zoneType: '비행금지구역',
+        overlap: { zoneTypes: ['관제권'], isComplete: true, hasFailure: false },
+      },
+    ]);
+  });
+
+  it('같은 지점의 연속 호출(폴리곤 클릭 + 지도 클릭)은 한 번만 조회한다', async () => {
+    let requests = 0;
+    server.use(
+      http.get(WFS_URL, () => {
+        requests += 1;
+        return miss();
+      }),
+    );
+    const { result } = setupTwoTypenames();
+
+    await act(async () => {
+      await Promise.all([
+        result.current.onMapClick(POINT),
+        result.current.onMapClick({ lat: POINT.lat + 1e-6, lng: POINT.lng }),
+      ]);
+    });
+
+    expect(requests).toBe(2);
+  });
+
+  it('다른 지점의 연속 클릭은 합치지 않고 마지막 지점의 결과를 쓴다', async () => {
+    server.use(http.get(WFS_URL, miss));
+    const { result, selectZone } = setupTwoTypenames();
+    const second = { lat: POINT.lat + 0.01, lng: POINT.lng };
+
+    await act(async () => {
+      await Promise.all([result.current.onMapClick(POINT), result.current.onMapClick(second)]);
+    });
+
+    expect(selectZone).toHaveBeenLastCalledWith({
+      position: second,
+      zoneType: null,
+      overlap: undefined,
+    });
   });
 });

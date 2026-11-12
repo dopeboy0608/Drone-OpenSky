@@ -156,6 +156,7 @@ export const MapView = () => {
             zoneType={selectedZone.zoneType}
             address={selectedAddress}
             isHidden={isSelectedZoneHidden}
+            overlap={selectedZone.overlap}
             onClose={clearZone}
           />
         )}
