@@ -48,3 +48,7 @@ export const TYPENAME_ZONE_LABELS: Record<string, string> = Object.fromEntries(
 export const ZONE_LEVEL_BY_LABEL: Record<string, AirspaceZoneLevel> = Object.fromEntries(
   ZONE_TYPES.map((zone) => [zone.label, zone.level]),
 );
+
+// 클릭 조회 대상. 범례 필터(표시 여부)와 무관하게 전부 조회한다. 숨긴 구역 위를 클릭했을 때 "규제 없음"으로 보이면
+// 오해를 부르기 때문이다(#27). 순서는 우선순위(위험도 높은 순)다.
+export const ALL_ZONE_TYPENAMES: string[] = Object.keys(TYPENAME_ZONE_LABELS);

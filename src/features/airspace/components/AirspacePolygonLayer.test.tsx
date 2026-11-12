@@ -95,7 +95,7 @@ describe('AirspacePolygonLayer 토글 필터', () => {
       <AirspacePolygonLayer
         config={config}
         data={makeData(makeFeature('관제권'), makeFeature('군작전구역'))}
-        onSelectZone={vi.fn()}
+        onPointClick={vi.fn()}
       />,
     );
 
@@ -108,7 +108,7 @@ describe('AirspacePolygonLayer 토글 필터', () => {
         config={config}
         data={makeData(makeFeature('관제권', 'R1'), makeFeature('군작전구역', 'R2'))}
         visibleZoneTypes={new Set(['관제권'])}
-        onSelectZone={vi.fn()}
+        onPointClick={vi.fn()}
       />,
     );
 
@@ -124,7 +124,7 @@ describe('AirspacePolygonLayer 토글 필터', () => {
         config={config}
         data={makeData(makeFeature('관제권'))}
         visibleZoneTypes={new Set()}
-        onSelectZone={vi.fn()}
+        onPointClick={vi.fn()}
       />,
     );
 
@@ -133,13 +133,13 @@ describe('AirspacePolygonLayer 토글 필터', () => {
 
   it('숨겼다가 다시 켜도 폴리곤을 새로 만들지 않고 지도에 다시 붙인다', () => {
     const data = makeData(makeFeature('관제권'));
-    const onSelectZone = vi.fn();
+    const onPointClick = vi.fn();
     const { rerender } = render(
       <AirspacePolygonLayer
         config={config}
         data={data}
         visibleZoneTypes={new Set(['관제권'])}
-        onSelectZone={onSelectZone}
+        onPointClick={onPointClick}
       />,
     );
 
@@ -148,7 +148,7 @@ describe('AirspacePolygonLayer 토글 필터', () => {
         config={config}
         data={data}
         visibleZoneTypes={new Set()}
-        onSelectZone={onSelectZone}
+        onPointClick={onPointClick}
       />,
     );
     rerender(
@@ -156,7 +156,7 @@ describe('AirspacePolygonLayer 토글 필터', () => {
         config={config}
         data={data}
         visibleZoneTypes={new Set(['관제권'])}
-        onSelectZone={onSelectZone}
+        onPointClick={onPointClick}
       />,
     );
 
@@ -164,37 +164,19 @@ describe('AirspacePolygonLayer 토글 필터', () => {
     expect(polygonSetMapCalls[0]).toEqual([MOCK_MAP, null, MOCK_MAP]);
   });
 
-  it('폴리곤을 클릭하면 구역 종류와 클릭 위치로 onSelectZone을 호출한다', () => {
-    const onSelectZone = vi.fn();
+  it('폴리곤을 클릭하면 클릭 위치로 onPointClick을 호출한다 (구역 종류는 좌표로 다시 조회해 정한다)', () => {
+    const onPointClick = vi.fn();
     render(
       <AirspacePolygonLayer
         config={config}
         data={makeData(makeFeature('관제권'))}
-        onSelectZone={onSelectZone}
+        onPointClick={onPointClick}
       />,
     );
 
     fireEvent.click(screen.getByTestId('polygon'));
 
-    expect(onSelectZone).toHaveBeenCalledWith({
-      position: { lat: 37, lng: 127 },
-      zoneType: '관제권',
-    });
-  });
-
-  it('구역 종류가 없는 폴리곤은 클릭해도 onSelectZone을 호출하지 않는다', () => {
-    const onSelectZone = vi.fn();
-    render(
-      <AirspacePolygonLayer
-        config={config}
-        data={makeData({ ...makeFeature('관제권'), zoneType: undefined })}
-        onSelectZone={onSelectZone}
-      />,
-    );
-
-    fireEvent.click(screen.getByTestId('polygon'));
-
-    expect(onSelectZone).not.toHaveBeenCalled();
+    expect(onPointClick).toHaveBeenCalledWith({ lat: 37, lng: 127 });
   });
 });
 
@@ -216,26 +198,26 @@ describe('AirspacePolygonLayer 렌더 비용', () => {
 
   it('데이터가 같으면 부모가 리렌더되어도 폴리곤을 다시 렌더링하지 않는다', () => {
     const data = makeData(makeFeature('관제권'), makeFeature('군작전구역'));
-    const onSelectZone = vi.fn();
+    const onPointClick = vi.fn();
     const { rerender } = render(
-      <AirspacePolygonLayer config={config} data={data} onSelectZone={onSelectZone} />,
+      <AirspacePolygonLayer config={config} data={data} onPointClick={onPointClick} />,
     );
     expect(polygonRenders).toHaveLength(2);
 
-    rerender(<AirspacePolygonLayer config={config} data={data} onSelectZone={onSelectZone} />);
+    rerender(<AirspacePolygonLayer config={config} data={data} onPointClick={onPointClick} />);
 
     expect(polygonRenders).toHaveLength(2);
   });
 
   it('필터가 바뀌어도 바뀌지 않은 폴리곤은 다시 렌더링하지 않고 path 참조를 유지한다', () => {
     const data = makeData(makeFeature('관제권'), makeFeature('군작전구역'));
-    const onSelectZone = vi.fn();
+    const onPointClick = vi.fn();
     const { rerender } = render(
       <AirspacePolygonLayer
         config={config}
         data={data}
         visibleZoneTypes={new Set(['관제권', '군작전구역'])}
-        onSelectZone={onSelectZone}
+        onPointClick={onPointClick}
       />,
     );
     const [firstPath] = polygonRenders;
@@ -245,7 +227,7 @@ describe('AirspacePolygonLayer 렌더 비용', () => {
         config={config}
         data={data}
         visibleZoneTypes={new Set(['관제권'])}
-        onSelectZone={onSelectZone}
+        onPointClick={onPointClick}
       />,
     );
 

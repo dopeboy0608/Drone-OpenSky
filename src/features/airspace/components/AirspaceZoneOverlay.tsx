@@ -11,6 +11,8 @@ interface AirspaceZoneOverlayProps {
   position: { lat: number; lng: number };
   zoneType: string | null;
   address?: AddressState;
+  // 범례에서 꺼서 지도에 보이지 않는 구역이면 true.
+  isHidden?: boolean;
   onClose: () => void;
 }
 
@@ -21,6 +23,7 @@ export const AirspaceZoneOverlay = ({
   position,
   zoneType,
   address = { status: 'idle' },
+  isHidden = false,
   onClose,
 }: AirspaceZoneOverlayProps) => {
   const { token } = theme.useToken();
@@ -36,7 +39,11 @@ export const AirspaceZoneOverlay = ({
     <CustomOverlayMap position={position} xAnchor={0} yAnchor={0} zIndex={10}>
       <div className="relative h-0 w-0">
         {/* Card의 box-shadow는 꼬리를 따라가지 못해 이음새에서 끊기므로, 카드와 꼬리를 한 덩어리로 감싼 래퍼에 drop-shadow를 준다(지도 색과 구분). */}
-        <div className="absolute bottom-0 left-0 flex w-max -translate-x-1/2 flex-col items-center drop-shadow-[0_2px_6px_rgba(0,0,0,0.3)]">
+        <div
+          // 위치가 바뀌면 새 안내가 열리는 것이므로 다시 자라나는 효과를 준다. 주소가 늦게 도착하는 갱신에서는 key가 같아 재생하지 않는다.
+          key={`${position.lat},${position.lng}`}
+          className="zone-card-enter absolute bottom-0 left-0 flex w-max -translate-x-1/2 flex-col items-center drop-shadow-[0_2px_6px_rgba(0,0,0,0.3)]"
+        >
           <Card
             size="small"
             title={zoneType ?? headline}
@@ -61,7 +68,8 @@ export const AirspaceZoneOverlay = ({
                 />
               </ConfigProvider>
             }
-            className="whitespace-nowrap"
+            // 폭을 고정하는 이유: 구역 이름·주소 길이에 따라 카드 폭이 바뀌면 가운데 정렬 기준이 좌우로 흔들려 열릴 때 튀어 보인다.
+            className="w-60 whitespace-nowrap"
             styles={{
               header: { borderBottom: 'none' },
               // antd 헤더 래퍼는 이미 flex이고 제목이 flex:1이라 닫기 버튼이 우측 끝에 붙는다(space-between과 같은 배치).
@@ -70,7 +78,7 @@ export const AirspaceZoneOverlay = ({
               body: { paddingTop: 0 },
             }}
           >
-            <ZoneGuidanceBody zoneType={zoneType} address={address} />
+            <ZoneGuidanceBody zoneType={zoneType} address={address} isHidden={isHidden} />
           </Card>
           {/* 테두리 삼각형으로 그려 끝점이 래퍼 바닥(클릭 좌표)에 정확히 놓이게 한다. 회전한 정사각형은 꼭짓점이 어긋난다.
           바깥(카드 테두리색)·안쪽(흰색) 삼각형을 겹쳐 꼬리에도 1px 테두리를 만들고, -mt-px로 카드 아랫변을 안쪽 삼각형이 덮어 이음새 선을 없앤다. */}

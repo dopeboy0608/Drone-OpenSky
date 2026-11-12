@@ -65,6 +65,17 @@ describe('AirspaceZoneOverlay 앵커', () => {
     expect(screen.getByText('관제권')).toBeDefined();
   });
 
+  it('열릴 때 꼬리 끝에서 자라나는 효과를 주고, 카드 폭을 고정해 글자 길이에 따라 튀지 않게 한다', () => {
+    render(
+      <AirspaceZoneOverlay position={{ lat: 37, lng: 127 }} zoneType="관제권" onClose={vi.fn()} />,
+    );
+
+    const wrapper = screen.getByTestId('overlay-content').firstElementChild?.firstElementChild;
+
+    expect(wrapper?.className).toContain('zone-card-enter');
+    expect(wrapper?.querySelector('.w-60')).not.toBeNull();
+  });
+
   describe('비행 안내와 주소 (#27)', () => {
     const renderOverlay = (
       zoneType: string | null,
@@ -117,6 +128,25 @@ describe('AirspaceZoneOverlay 앵커', () => {
 
       expect(screen.getByText('주소를 불러오지 못했습니다.')).toBeDefined();
       expect(screen.getByText('비행 제한 구역')).toBeDefined();
+    });
+
+    it('범례에서 숨긴 구역이면 그 사실을 카드에 알린다', () => {
+      render(
+        <AirspaceZoneOverlay
+          position={{ lat: 37, lng: 127 }}
+          zoneType="관제권"
+          isHidden
+          onClose={vi.fn()}
+        />,
+      );
+
+      expect(screen.getByText('범례에서 숨긴 구역입니다.')).toBeDefined();
+    });
+
+    it('숨기지 않은 구역에는 숨김 안내를 쓰지 않는다', () => {
+      renderOverlay('관제권');
+
+      expect(screen.queryByText('범례에서 숨긴 구역입니다.')).toBeNull();
     });
 
     it('주소 상태를 주지 않으면 주소 줄을 그리지 않는다', () => {

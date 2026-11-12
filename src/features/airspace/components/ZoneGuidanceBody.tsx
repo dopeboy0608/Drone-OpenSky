@@ -8,9 +8,14 @@ import type { AddressState } from '@/types/address';
 interface ZoneGuidanceBodyProps {
   zoneType: string | null;
   address: AddressState;
+  isHidden?: boolean;
 }
 
-export const ZoneGuidanceBody = ({ zoneType, address }: ZoneGuidanceBodyProps) => {
+export const ZoneGuidanceBody = ({
+  zoneType,
+  address,
+  isHidden = false,
+}: ZoneGuidanceBodyProps) => {
   const guidance = resolveFlightGuidance(zoneType);
   const addressText = formatZoneAddress(address);
 
@@ -24,8 +29,10 @@ export const ZoneGuidanceBody = ({ zoneType, address }: ZoneGuidanceBodyProps) =
           </Tag>
         </div>
       )}
+      {isHidden && <div className="text-gray-500">범례에서 숨긴 구역입니다.</div>}
       <div>{guidance.detail}</div>
-      {addressText && <div className="text-gray-600">{addressText}</div>}
+      {/* 두 줄 높이를 미리 잡아 두는 이유: 주소가 도착하며 카드가 위로 자라는 것을 막는다. */}
+      {addressText && <div className="min-h-8 text-gray-600">{addressText}</div>}
     </div>
   );
 };

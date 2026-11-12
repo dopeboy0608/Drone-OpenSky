@@ -1,10 +1,11 @@
 import { useEffect, useMemo } from 'react';
 
 import { useSelectedZone } from '@/features/airspace/hooks/useSelectedZone';
-import { useWmsZoneClick } from '@/features/airspace/hooks/useWmsZoneClick';
+import { useZoneClick } from '@/features/airspace/hooks/useZoneClick';
 import type { AirspaceRenderMode } from '@/features/airspace/store/airspaceRenderModeStore';
-import { getVisibleTypenames } from '@/features/airspace/utils/getVisibleTypenames';
 import { getVisibleZoneTypes } from '@/features/airspace/utils/getVisibleZoneTypes';
+
+import { ALL_ZONE_TYPENAMES } from '@/features/airspace/constants';
 
 // 참조가 고정된 빈 Set. 렌더마다 새로 만들면 레이어/선택 해제 이펙트가 매번 다시 돈다.
 const NO_VISIBLE_ZONE_TYPES: ReadonlySet<string> = new Set();
@@ -21,20 +22,23 @@ export const useAirspaceMapInteraction = ({
   visibility,
 }: UseAirspaceMapInteractionParams) => {
   const filteredZoneTypes = useMemo(() => getVisibleZoneTypes(visibility), [visibility]);
-  const visibleTypenames = useMemo(() => getVisibleTypenames(visibility), [visibility]);
   // WMS 모드의 숨김은 언마운트가 아니라 가시성 전환으로 한다. 폴리곤 복귀 시 Polygon 재생성 비용을
   // 피하기 위함이다(#47).
   const visibleZoneTypes = renderMode === 'wms' ? NO_VISIBLE_ZONE_TYPES : filteredZoneTypes;
 
-  // 안내 박스의 자동 닫힘 기준은 폴리곤 숨김과 분리한다. WMS 모드에서도 클릭 안내(#75)가 열려야 하므로
-  // 모드와 무관하게 범례 필터 기준(꺼진 종류만 닫힘)을 쓴다.
-  const { selectedZone, selectZone, clearZone } = useSelectedZone(filteredZoneTypes);
-  const { onMapClick: handleWmsMapClick, pendingPosition } = useWmsZoneClick({
-    enabled: renderMode === 'wms',
-    typenames: visibleTypenames,
+  const { selectedZone, selectZone, clearZone } = useSelectedZone();
+  // 두 모드 모두 같은 좌표 조회로 안내한다. 조회 대상은 범례 필터와 무관하게 전체다(#27).
+  const { onMapClick: handlePointClick, pendingPosition } = useZoneClick({
+    enabled: true,
+    resetKey: renderMode,
+    typenames: ALL_ZONE_TYPENAMES,
     selectZone,
     clearZone,
   });
+
+  // 범례에서 꺼서 지도에 보이지 않는 구역이면 카드에 그 사실을 알린다.
+  const isSelectedZoneHidden =
+    selectedZone?.zoneType != null && !filteredZoneTypes.has(selectedZone.zoneType);
 
   // 모드를 바꾸면 이전 모드에서 열린 안내는 의미가 없어 닫는다(예전에는 빈 Set 전달로 닫혔다).
   // renderMode는 값이 아니라 "바뀐 시점"을 알리는 트리거로만 쓴다.
@@ -46,9 +50,9 @@ export const useAirspaceMapInteraction = ({
   return {
     visibleZoneTypes,
     selectedZone,
-    selectZone,
+    isSelectedZoneHidden,
     clearZone,
-    handleWmsMapClick,
+    handlePointClick,
     pendingPosition,
   };
 };

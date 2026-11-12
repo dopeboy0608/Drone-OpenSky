@@ -83,7 +83,7 @@
 ### 05 (#75) — 2026-11-10
 
 - 결정: 클릭 지점만 WFS 조회(사용자 선택). `GetFeatureInfo`는 VWorld 지원·CORS 불확실, 숨김 폴리곤은 50MB 조회가 #73 취지와 충돌해 제외.
-- 구현: `isPointInMultiPolygon`(홀 처리, TDD), `fetchAirspaceZonesAtPoint`(±0.0001° BBOX), `findZoneTypeAtPoint`(typename 순서 우선순위, 일부 실패 허용·구역 없음+실패면 오류), `useWmsZoneClick`(최신 요청만 반영), `MapView` 연결. 안내 박스 자동 닫힘 기준을 폴리곤 숨김과 분리하고 모드 전환 시 닫음. 테스트 219개 통과.
+- 구현: `isPointInMultiPolygon`(홀 처리, TDD), `fetchAirspaceZonesAtPoint`(±0.0001° BBOX), `findZoneTypeAtPoint`(typename 순서 우선순위, 일부 실패 허용·구역 없음+실패면 오류), `useZoneClick`(최신 요청만 반영), `MapView` 연결. 안내 박스 자동 닫힘 기준을 폴리곤 숨김과 분리하고 모드 전환 시 닫음. 테스트 219개 통과.
 - 미검증(브라우저/실서버): VWorld WFS가 작은 BBOX에서 실제로 해당 구역만 돌려주는지(BBOX 축 순서·교차 판정), 클릭 응답 지연, 프로덕션 relay 응답.
 
 ### 06 준비 (#76) — 2026-11-11

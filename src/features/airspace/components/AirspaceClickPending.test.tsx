@@ -46,4 +46,14 @@ describe('AirspaceClickPending', () => {
       'pointer-events-none',
     );
   });
+
+  it('원형을 유지하도록 가로·세로 크기를 같은 값으로 고정한다 (0폭 부모에서 타원으로 쪼그라드는 것 방지)', () => {
+    render(<AirspaceClickPending position={{ lat: 37, lng: 127 }} />);
+
+    const { className } = screen.getByRole('status', { name: '구역 조회 중' });
+
+    expect(className).toContain('h-8');
+    expect(className).toContain('w-8');
+    expect(className).toContain('rounded-full');
+  });
 });
