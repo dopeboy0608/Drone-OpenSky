@@ -25,7 +25,7 @@
 | P7  | 적용       | 테스트하기 어려운 구조 + 주석 누적             | 부팅 코드가 모듈 최상단 부수효과라 테스트할 수 없고, 주석이 이어 붙어 있다                     | Extract Function, 별칭 통일                                                            |
 | P8  | 적용       | 변경 이유가 여럿                               | WMS 레이어 파일이 SDK 등록 규칙과 컴포넌트를 함께 가진다                                       | Extract Module                                                                         |
 | P9  | 적용       | 긴 함수                                        | findZoneTypeAtPoint가 취소 연결, 병렬 요청, 우선순위 소비를 한 함수에서 한다                   | Extract Function                                                                       |
-| P10 | 적용       | 긴 콜백, 흩어진 보조 상태                      | "마지막 요청만 반영" 장치가 useZoneClick 안에 흩어져 있다                                      | Extract Hook                                                                           |
+| P10 | 적용       | 긴 콜백, 흩어진 보조 상태                      | "마지막 요청만 반영" 장치가 useWmsZoneClick 안에 흩어져 있다                                   | Extract Hook                                                                           |
 | P11 | 적용       | 중복(사소)                                     | 토스트 지속 시간 상수와 개발 모드 판정이 여러 곳에 있다                                        | Extract Variable                                                                       |
 | F1  | 적용       | 의도를 적은 주석을 코드가 지키지 않음          | 클릭 조회 중에 모드를 바꾸면 결과가 뒤늦게 반영된다 (주석과 코드의 불일치) — 이슈 #94에서 수정 | Characterization Test로 확인 후 별도 수정                                              |
 | D1  | 제안 안 함 | 전역 객체 의존                                 | 순수 기하 함수가 전역 kakao 객체에 의존한다                                                    | Split Phase                                                                            |
@@ -537,11 +537,11 @@ try {
 
 **배운 점**: 타이밍이 중요한 코드는 안전망(테스트 17케이스)을 먼저 확인하고 구조만 바꾼다. 그러면 위험하다고 보류한 일도 안전하게 할 수 있다.
 
-### P10. "마지막 요청만 반영" 장치가 useZoneClick 안에 흩어져 있다
+### P10. "마지막 요청만 반영" 장치가 useWmsZoneClick 안에 흩어져 있다
 
 - **상태**: 적용
 - **스멜**: Long Function / Temporary Field (긴 콜백, 흩어진 보조 상태)
-- **대상**: `features/airspace/hooks/useZoneClick.ts`
+- **대상**: `features/airspace/hooks/useWmsZoneClick.ts`
 - **패턴**: Extract Hook
 
 **증상**
@@ -576,9 +576,9 @@ const zoneType = await findZoneTypeAtPoint(point, typenames, signal);
 if (!isLatest()) return;
 ```
 
-**결과**: 적용. 요청 ID와 AbortController 두 ref, 언마운트 시 취소를 `useLatestRequest`로 모았다. `useZoneClick`의 반환 형태는 그대로다. 새 훅 테스트 +4.
+**결과**: 적용. 요청 ID와 AbortController 두 ref, 언마운트 시 취소를 `useLatestRequest`로 모았다. `useWmsZoneClick`의 반환 형태는 그대로다. 새 훅 테스트 +4.
 
-**검증**: 기존 `useZoneClick` 테스트 10개와 새 훅 테스트 4개가 통과했다. 원본과 같은 동작임을 프로브로 확인했다(F1 참고).
+**검증**: 기존 `useWmsZoneClick` 테스트 10개와 새 훅 테스트 4개가 통과했다. 원본과 같은 동작임을 프로브로 확인했다(F1 참고).
 
 **배운 점**: 이 장치를 훅으로 빼니 테스트 가능한 단위가 생겼고(+4), 옮기는 과정에서 기존 주석과 코드가 어긋난 것을 발견했다. 추상화의 부수 효과로 코드를 다시 읽게 된다.
 
@@ -586,7 +586,7 @@ if (!isLatest()) return;
 
 - **상태**: 적용
 - **스멜**: Duplicated Code (사소함) (중복(사소))
-- **대상**: `useAirspaceZoneQueries.ts`, `useZoneClick.ts`, `api/vworldClient.ts`
+- **대상**: `useAirspaceZoneQueries.ts`, `useWmsZoneClick.ts`, `api/vworldClient.ts`
 - **패턴**: Extract Variable
 
 **증상**
@@ -631,7 +631,7 @@ const isDevelopment = import.meta.env.MODE === 'development';
 
 - **상태**: 적용
 - **스멜**: 주석과 코드의 불일치 → 잠재 결함 (의도를 적은 주석을 코드가 지키지 않음)
-- **대상**: `features/airspace/hooks/useLatestRequest.ts`, `features/airspace/hooks/useZoneClick.ts`
+- **대상**: `features/airspace/hooks/useLatestRequest.ts`, `features/airspace/hooks/useWmsZoneClick.ts`
 - **패턴**: Characterization Test로 확인 후 별도 수정
 
 **증상**
@@ -661,7 +661,7 @@ WMS 모드에서 구역을 클릭한 직후(응답 전)에 폴리곤 모드로 �
 
 **개선 방안**
 
-`useLatestRequest`에 `cancel()`을 추가하고, `useZoneClick`이 `enabled`가 false가 되면 진행 중인 요청을 끊고(결과는 최신이 아니게 되어 무시됨) 조회 중 표시도 직접 지운다. 동작을 바꾸는 수정이라 리팩터링(#51)과 분리해 이슈 #94로 고쳤다. 이슈에 적은 대로 실패하는 테스트를 먼저 썼다.
+`useLatestRequest`에 `cancel()`을 추가하고, `useWmsZoneClick`이 `enabled`가 false가 되면 진행 중인 요청을 끊고(결과는 최신이 아니게 되어 무시됨) 조회 중 표시도 직접 지운다. 동작을 바꾸는 수정이라 리팩터링(#51)과 분리해 이슈 #94로 고쳤다. 이슈에 적은 대로 실패하는 테스트를 먼저 썼다.
 
 **After**
 
@@ -672,7 +672,7 @@ const cancel = useCallback(() => {
   latestRequestIdRef.current += 1;
 }, []);
 
-// useZoneClick
+// useWmsZoneClick
 useEffect(() => {
   if (!enabled) {
     cancelLatestRequest();
@@ -917,4 +917,4 @@ readZoneCache: 읽기 → (실패 시) 삭제 → null
 - 구조: `MapView` 팬아웃 20 → 18, `map → airspace` import 15 → 12. 프로덕션 파일 54 → 60, 순환 의존은 계속 없음.
 - 공개 인터페이스: export 이름 목록을 전후로 비교해 제거·개명이 없음을 확인했다. 추가된 export는 `WMS_TILE_SIZE`, `requestAirspaceFeatures`, `bootstrap`, `wmsTilesets`의 네 심볼, `useLatestRequest`, `useAirspaceMapInteraction`, 토스트 상수 2개다.
 - 항목별 커밋(P1–P11)으로 나눠 각 커밋이 단독으로 테스트와 타입 검사를 통과한다.
-- 발견과 수정: 리팩터링 중 `useZoneClick`의 주석("모드를 바꾸면 끊는다")이 코드와 어긋나는 것을 확인했다(F1). 동작은 리팩터링에서 바꾸지 않고 기록한 뒤, 이슈 #94에서 실패하는 테스트를 먼저 쓰고 고쳤다(테스트 260 → 268).
+- 발견과 수정: 리팩터링 중 `useWmsZoneClick`의 주석("모드를 바꾸면 끊는다")이 코드와 어긋나는 것을 확인했다(F1). 동작은 리팩터링에서 바꾸지 않고 기록한 뒤, 이슈 #94에서 실패하는 테스트를 먼저 쓰고 고쳤다(테스트 260 → 268).
