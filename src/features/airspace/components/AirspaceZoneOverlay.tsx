@@ -11,6 +11,8 @@ interface AirspaceZoneOverlayProps {
   position: { lat: number; lng: number };
   zoneType: string | null;
   address?: AddressState;
+  // 범례에서 꺼서 지도에 보이지 않는 구역이면 true.
+  isHidden?: boolean;
   onClose: () => void;
 }
 
@@ -21,6 +23,7 @@ export const AirspaceZoneOverlay = ({
   position,
   zoneType,
   address = { status: 'idle' },
+  isHidden = false,
   onClose,
 }: AirspaceZoneOverlayProps) => {
   const { token } = theme.useToken();
@@ -75,7 +78,7 @@ export const AirspaceZoneOverlay = ({
               body: { paddingTop: 0 },
             }}
           >
-            <ZoneGuidanceBody zoneType={zoneType} address={address} />
+            <ZoneGuidanceBody zoneType={zoneType} address={address} isHidden={isHidden} />
           </Card>
           {/* 테두리 삼각형으로 그려 끝점이 래퍼 바닥(클릭 좌표)에 정확히 놓이게 한다. 회전한 정사각형은 꼭짓점이 어긋난다.
           바깥(카드 테두리색)·안쪽(흰색) 삼각형을 겹쳐 꼬리에도 1px 테두리를 만들고, -mt-px로 카드 아랫변을 안쪽 삼각형이 덮어 이음새 선을 없앤다. */}

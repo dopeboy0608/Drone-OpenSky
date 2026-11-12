@@ -1,29 +1,27 @@
 import { memo, useCallback, useLayoutEffect, useRef } from 'react';
 import { CustomOverlayMap, Polygon, useMap } from 'react-kakao-maps-sdk';
 
-import type { AirspaceZoneConfig, SelectedZone } from '@/features/airspace/types';
+import type { AirspaceZoneConfig } from '@/features/airspace/types';
 
 interface AirspacePolygonProps {
   config: AirspaceZoneConfig;
   path: { lat: number; lng: number }[][];
-  zoneType: string | undefined;
   isVisible: boolean;
   labelPosition: { lat: number; lng: number };
   zoneNumberLabel: string | undefined;
-  onSelectZone: (zone: SelectedZone) => void;
+  onPointClick: (point: { lat: number; lng: number }) => void;
 }
 
-// memo + 안정된 props(path 참조, 안정된 onSelectZone)여야 레이어가 리렌더되어도 Polygon이
+// memo + 안정된 props(path 참조, 안정된 onPointClick)여야 레이어가 리렌더되어도 Polygon이
 // 다시 그려지지 않는다. Polygon은 path 참조가 바뀌면 setPath를 호출해 비용이 크다 (이슈 #47).
 export const AirspacePolygon = memo(
   ({
     config,
     path,
-    zoneType,
     isVisible,
     labelPosition,
     zoneNumberLabel,
-    onSelectZone,
+    onPointClick,
   }: AirspacePolygonProps) => {
     const map = useMap();
 
@@ -31,15 +29,10 @@ export const AirspacePolygon = memo(
 
     const handleClick = useCallback(
       (_target: unknown, mouseEvent: kakao.maps.event.MouseEvent) => {
-        if (!zoneType) {
-          return;
-        }
-        onSelectZone({
-          position: { lat: mouseEvent.latLng.getLat(), lng: mouseEvent.latLng.getLng() },
-          zoneType,
-        });
+        // 구역 종류는 폴리곤이 아니라 클릭 좌표로 다시 조회해 정한다. 폴리곤 한 개의 종류는 겹친 구역의 우선순위를 모르기 때문이다(#27).
+        onPointClick({ lat: mouseEvent.latLng.getLat(), lng: mouseEvent.latLng.getLng() });
       },
-      [zoneType, onSelectZone],
+      [onPointClick],
     );
 
     // 숨길 때 언마운트하면 다시 켤 때 Kakao Polygon을 새로 만들고 path를 설정하는 비용이 한꺼번에

@@ -130,6 +130,25 @@ describe('AirspaceZoneOverlay 앵커', () => {
       expect(screen.getByText('비행 제한 구역')).toBeDefined();
     });
 
+    it('범례에서 숨긴 구역이면 그 사실을 카드에 알린다', () => {
+      render(
+        <AirspaceZoneOverlay
+          position={{ lat: 37, lng: 127 }}
+          zoneType="관제권"
+          isHidden
+          onClose={vi.fn()}
+        />,
+      );
+
+      expect(screen.getByText('범례에서 숨긴 구역입니다.')).toBeDefined();
+    });
+
+    it('숨기지 않은 구역에는 숨김 안내를 쓰지 않는다', () => {
+      renderOverlay('관제권');
+
+      expect(screen.queryByText('범례에서 숨긴 구역입니다.')).toBeNull();
+    });
+
     it('주소 상태를 주지 않으면 주소 줄을 그리지 않는다', () => {
       renderOverlay('관제권');
 

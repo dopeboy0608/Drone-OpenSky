@@ -56,9 +56,9 @@ export const MapView = () => {
   const {
     visibleZoneTypes,
     selectedZone,
-    selectZone,
+    isSelectedZoneHidden,
     clearZone,
-    handleWmsMapClick,
+    handlePointClick,
     pendingPosition,
   } = useAirspaceMapInteraction({ renderMode, visibility: airspaceVisibility });
 
@@ -134,7 +134,7 @@ export const MapView = () => {
         style={{ width: '100%', height: '100%' }}
         onCreate={setKakaoMapInstance}
         onClick={(_map, mouseEvent) =>
-          handleWmsMapClick({
+          handlePointClick({
             lat: mouseEvent.latLng.getLat(),
             lng: mouseEvent.latLng.getLng(),
           })
@@ -146,7 +146,7 @@ export const MapView = () => {
             config={config}
             data={data}
             visibleZoneTypes={visibleZoneTypes}
-            onSelectZone={selectZone}
+            onPointClick={handlePointClick}
           />
         ))}
         {renderMode === 'wms' && <AirspaceWmsLayer />}
@@ -155,6 +155,7 @@ export const MapView = () => {
             position={selectedZone.position}
             zoneType={selectedZone.zoneType}
             address={selectedAddress}
+            isHidden={isSelectedZoneHidden}
             onClose={clearZone}
           />
         )}

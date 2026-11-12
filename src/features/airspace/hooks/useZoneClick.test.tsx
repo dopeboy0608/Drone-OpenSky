@@ -4,7 +4,7 @@ import { delay, http, HttpResponse } from 'msw';
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { useWmsZoneClick } from '@/features/airspace/hooks/useWmsZoneClick';
+import { useZoneClick } from '@/features/airspace/hooks/useZoneClick';
 import { server } from '@/test/mocks/server';
 
 const WFS_URL = 'https://server-eosin-five-92.vercel.app/api/vworld-api/wfs';
@@ -35,7 +35,7 @@ const setup = (options: { enabled?: boolean; typenames?: string[] } = {}) => {
   const wrapper = ({ children }: { children: ReactNode }) => <AntdApp>{children}</AntdApp>;
   const hook = renderHook(
     () =>
-      useWmsZoneClick({
+      useZoneClick({
         enabled: options.enabled ?? true,
         typenames: options.typenames ?? ['lt_c_aisprhc'],
         selectZone,
@@ -46,7 +46,7 @@ const setup = (options: { enabled?: boolean; typenames?: string[] } = {}) => {
   return { ...hook, selectZone, clearZone };
 };
 
-describe('useWmsZoneClick', () => {
+describe('useZoneClick', () => {
   it('구역 위를 클릭하면 클릭 좌표와 구역 종류로 안내를 연다', async () => {
     server.use(http.get(WFS_URL, hit));
     const { result, selectZone } = setup();
@@ -207,7 +207,7 @@ describe('useWmsZoneClick', () => {
 });
 
 // 이슈 #94: 클릭 조회 중에 모드를 바꾸면(enabled=false) 이미 나간 조회의 결과가 뒤늦게 반영되던 문제.
-describe('useWmsZoneClick 조회 중 비활성화', () => {
+describe('useZoneClick 조회 중 비활성화', () => {
   // 이 파일은 테스트 사이에 DOM을 정리하지 않아 앞선 테스트의 토스트가 남는다. 토스트 부재를 검증하려면 격리가 필요하다.
   afterEach(cleanup);
 
@@ -224,7 +224,7 @@ describe('useWmsZoneClick 조회 중 비활성화', () => {
     const wrapper = ({ children }: { children: ReactNode }) => <AntdApp>{children}</AntdApp>;
     const hook = renderHook(
       ({ enabled }: { enabled: boolean }) =>
-        useWmsZoneClick({ enabled, typenames: ['lt_c_aisprhc'], selectZone, clearZone }),
+        useZoneClick({ enabled, typenames: ['lt_c_aisprhc'], selectZone, clearZone }),
       { initialProps: { enabled: true }, wrapper },
     );
     return { ...hook, selectZone, clearZone };
@@ -284,5 +284,44 @@ describe('useWmsZoneClick 조회 중 비활성화', () => {
     await act(() => result.current.onMapClick(POINT));
 
     expect(selectZone).toHaveBeenCalledWith({ position: POINT, zoneType: '비행금지구역' });
+  });
+});
+
+// #27: 두 표시 방식이 같은 조회를 쓰므로, enabled 대신 resetKey(표시 방식)가 바뀔 때 진행 중인 조회를 끊는다.
+describe('useZoneClick resetKey', () => {
+  afterEach(cleanup);
+
+  it('resetKey가 바뀌면 진행 중이던 조회 결과로 안내를 열지 않고 조회 중 표시를 지운다', async () => {
+    server.use(
+      http.get(WFS_URL, async () => {
+        await delay(60);
+        return hit();
+      }),
+    );
+    const selectZone = vi.fn();
+    const clearZone = vi.fn();
+    const wrapper = ({ children }: { children: ReactNode }) => <AntdApp>{children}</AntdApp>;
+    const { result, rerender } = renderHook(
+      ({ mode }: { mode: string }) =>
+        useZoneClick({
+          enabled: true,
+          resetKey: mode,
+          typenames: ['lt_c_aisprhc'],
+          selectZone,
+          clearZone,
+        }),
+      { initialProps: { mode: 'wms' }, wrapper },
+    );
+    let click: Promise<void> = Promise.resolve();
+    act(() => {
+      click = result.current.onMapClick(POINT);
+    });
+    expect(result.current.pendingPosition).toEqual(POINT);
+
+    rerender({ mode: 'polygon' });
+    await act(() => click);
+
+    expect(selectZone).not.toHaveBeenCalled();
+    expect(result.current.pendingPosition).toBeNull();
   });
 });

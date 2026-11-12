@@ -43,11 +43,38 @@ describe('useAirspaceMapInteraction', () => {
     expect(result.current.visibleZoneTypes).toBe(first);
   });
 
-  it('모드를 바꾸면 열려 있던 안내를 닫는다', () => {
-    const { result, rerender } = setup('polygon');
-    act(() =>
-      result.current.selectZone({ position: { lat: 1, lng: 1 }, zoneType: '비행금지구역' }),
+  const square = [
+    [
+      [
+        [0, 0],
+        [10, 0],
+        [10, 10],
+        [0, 10],
+        [0, 0],
+      ],
+    ],
+  ];
+  const useHit = (onRequest?: (typename: string | null) => void) =>
+    server.use(
+      http.get(WFS_URL, ({ request }) => {
+        onRequest?.(new URL(request.url).searchParams.get('TYPENAME'));
+        return HttpResponse.json({
+          type: 'FeatureCollection',
+          features: [
+            {
+              type: 'Feature',
+              properties: {},
+              geometry: { type: 'MultiPolygon', coordinates: square },
+            },
+          ],
+        });
+      }),
     );
+
+  it('모드를 바꾸면 열려 있던 안내를 닫는다', async () => {
+    useHit();
+    const { result, rerender } = setup('polygon');
+    await act(() => result.current.handlePointClick({ lat: 5, lng: 5 }));
     expect(result.current.selectedZone).not.toBeNull();
 
     rerender({ renderMode: 'wms', visibility: createInitialVisibility() });
@@ -55,38 +82,54 @@ describe('useAirspaceMapInteraction', () => {
     expect(result.current.selectedZone).toBeNull();
   });
 
-  it('범례에서 해당 종류를 끄면 열려 있던 안내를 닫는다 (모드와 무관하게 범례 기준)', () => {
+  it('범례에서 해당 종류를 꺼도 안내는 닫히지 않고, 숨김 상태로 표시된다 (#27)', async () => {
+    useHit();
     const { result, rerender } = setup('wms');
-    act(() =>
-      result.current.selectZone({ position: { lat: 1, lng: 1 }, zoneType: '비행금지구역' }),
-    );
-    expect(result.current.selectedZone).not.toBeNull();
+    await act(() => result.current.handlePointClick({ lat: 5, lng: 5 }));
+    expect(result.current.selectedZone?.zoneType).toBe('비행금지구역');
+    expect(result.current.isSelectedZoneHidden).toBe(false);
 
     rerender({
       renderMode: 'wms',
       visibility: { ...createInitialVisibility(), lt_c_aisprhc: false },
     });
 
-    expect(result.current.selectedZone).toBeNull();
+    expect(result.current.selectedZone?.zoneType).toBe('비행금지구역');
+    expect(result.current.isSelectedZoneHidden).toBe(true);
   });
 
-  it('지도 클릭은 WMS 모드에서만 구역을 조회한다', async () => {
-    let requests = 0;
+  it('구역이 없는 곳이면 숨김 상태가 아니다', async () => {
     server.use(
-      http.get(WFS_URL, () => {
-        requests += 1;
-        return HttpResponse.json({ type: 'FeatureCollection', features: [] });
-      }),
+      http.get(WFS_URL, () => HttpResponse.json({ type: 'FeatureCollection', features: [] })),
     );
-    const polygon = setup('polygon');
-    const wms = setup('wms');
+    const { result } = setup('wms');
 
-    await act(() => polygon.result.current.handleWmsMapClick({ lat: 5, lng: 5 }));
-    expect(requests).toBe(0);
+    await act(() => result.current.handlePointClick({ lat: 5, lng: 5 }));
 
-    await act(() => wms.result.current.handleWmsMapClick({ lat: 5, lng: 5 }));
-    expect(requests).toBeGreaterThan(0);
+    expect(result.current.selectedZone?.zoneType).toBeNull();
+    expect(result.current.isSelectedZoneHidden).toBe(false);
   });
+
+  it.each(['polygon', 'wms'] as const)(
+    '%s 모드에서도 범례 필터와 무관하게 12개 구역 전부를 조회한다',
+    async (mode) => {
+      const typenames = new Set<string>();
+      server.use(
+        http.get(WFS_URL, ({ request }) => {
+          typenames.add(new URL(request.url).searchParams.get('TYPENAME') ?? '');
+          return HttpResponse.json({ type: 'FeatureCollection', features: [] });
+        }),
+      );
+      const allOff = Object.fromEntries(
+        Object.keys(createInitialVisibility()).map((typename) => [typename, false]),
+      );
+      const { result } = setup(mode, allOff);
+
+      await act(() => result.current.handlePointClick({ lat: 5, lng: 5 }));
+
+      expect(typenames.size).toBe(12);
+    },
+  );
 
   // 이슈 #94: WMS 클릭 직후(응답 전) 폴리곤 모드로 바꾸면 뒤늦게 도착한 결과가 안내 박스를 열던 문제.
   it('WMS 클릭 조회 중에 폴리곤 모드로 바꾸면 뒤늦게 도착한 결과로 안내를 열지 않는다', async () => {
@@ -119,7 +162,7 @@ describe('useAirspaceMapInteraction', () => {
     const { result, rerender } = setup('wms');
     let click: Promise<void> = Promise.resolve();
     act(() => {
-      click = result.current.handleWmsMapClick({ lat: 5, lng: 5 });
+      click = result.current.handlePointClick({ lat: 5, lng: 5 });
     });
 
     rerender({ renderMode: 'polygon', visibility: createInitialVisibility() });

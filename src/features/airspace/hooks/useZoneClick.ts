@@ -8,16 +8,20 @@ import { ERROR_TOAST_DURATION_SECONDS } from '@/constants/toast';
 import type { SelectedZone } from '@/features/airspace/types';
 
 interface UseWmsZoneClickParams {
-  // WMS 모드일 때만 켠다. 폴리곤 모드는 폴리곤 자체가 클릭을 받는다.
   enabled: boolean;
+  // 값이 바뀌면 진행 중인 조회를 끊는다(표시 방식을 바꾸면 이전 방식에서 낸 클릭의 결과는 의미가 없다, #94).
+  resetKey?: unknown;
   typenames: string[];
   selectZone: (zone: SelectedZone) => void;
   clearZone: () => void;
 }
 
-// WMS 타일은 래스터라 클릭 대상이 없어서, 클릭 지점만 WFS로 조회해 폴리곤 모드와 같은 안내를 띄운다 (이슈 #75).
-export const useWmsZoneClick = ({
+// 지도 클릭과 폴리곤 클릭이 같은 방식으로 구역을 정하게 한다: 클릭 지점만 WFS로 조회해 우선순위가 가장 높은 구역을 안내한다.
+// 폴리곤 모드는 같은 레벨 안에서 맨 위에 그려진 폴리곤이 클릭을 받아 우선순위와 어긋났고, WMS 타일은 래스터라 클릭 대상이
+// 없다. 둘을 같은 조회로 맞춘다 (이슈 #75, #27).
+export const useZoneClick = ({
   enabled,
+  resetKey,
   typenames,
   selectZone,
   clearZone,
@@ -80,6 +84,13 @@ export const useWmsZoneClick = ({
       setPendingPosition(null);
     }
   }, [enabled, cancelLatestRequest]);
+
+  // resetKey는 값이 아니라 "바뀐 시점"을 알리는 트리거로만 쓴다.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: resetKey 변경 자체가 실행 조건이다.
+  useEffect(() => {
+    cancelLatestRequest();
+    setPendingPosition(null);
+  }, [resetKey, cancelLatestRequest]);
 
   return { onMapClick, pendingPosition };
 };

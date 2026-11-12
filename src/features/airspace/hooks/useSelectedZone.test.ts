@@ -29,19 +29,13 @@ describe('useSelectedZone', () => {
     expect(result.current.clearZone).toBe(clearZone);
   });
 
-  it('선택된 종류가 숨겨지면 닫히고, 다시 켜도 다시 열리지 않는다', () => {
-    const { result, rerender } = renderHook(
-      ({ visible }: { visible?: ReadonlySet<string> }) => useSelectedZone(visible),
-      { initialProps: { visible: new Set(['관제권']) } },
-    );
+  it('선택된 종류를 범례에서 꺼도 닫지 않는다 (숨김 여부는 카드에 표기한다)', () => {
+    // 가시성 입력 자체가 없으므로 상태가 외부 조건으로 지워지지 않는다는 것을 확인한다.
+    const { result, rerender } = renderHook(() => useSelectedZone());
 
     act(() => result.current.selectZone(zone));
+    rerender();
+
     expect(result.current.selectedZone).toEqual(zone);
-
-    rerender({ visible: new Set() });
-    expect(result.current.selectedZone).toBeNull();
-
-    rerender({ visible: new Set(['관제권']) });
-    expect(result.current.selectedZone).toBeNull();
   });
 });
